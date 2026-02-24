@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI-Агенты: Персональные операционные системы</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #ffffff;
+  --bg-soft: #f7f7f8;
+  --bg-card: #f0f0f2;
+  --border: rgba(0,0,0,0.06);
+  --border-strong: rgba(0,0,0,0.1);
+  --text: #171717;
+  --text-secondary: #6e6e80;
+  --text-tertiary: #ababba;
+  --accent: #da7756;
+  --accent-soft: rgba(218,119,86,0.08);
+  --accent-border: rgba(218,119,86,0.2);
+  --accent-light: #e08a6a;
+  --orange: #da7756;
+  --orange-soft: rgba(218,119,86,0.08);
+  --orange-border: rgba(218,119,86,0.2);
+  --red: #dc2626;
+  --red-soft: rgba(220,38,38,0.06);
+}
+
+html, body {
+  width: 100%; height: 100%; overflow: hidden;
+  background: var(--bg); color: var(--text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Slides */
+.slide {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  padding: 48px 64px;
+  opacity: 0; transform: translateX(40px);
+  transition: opacity 0.5s cubic-bezier(0.4,0,0.2,1), transform 0.5s cubic-bezier(0.4,0,0.2,1);
+  pointer-events: none; z-index: 1;
+}
+.slide.active {
+  opacity: 1; transform: translateX(0); pointer-events: auto;
+}
+.slide.exit-left {
+  opacity: 0; transform: translateX(-40px);
+}
+
+.slide-content { max-width: 1100px; width: 100%; position: relative; z-index: 2; }
+
+/* Typography — light weights like OpenAI */
+h1 { font-size: 3.2rem; font-weight: 500; line-height: 1.15; letter-spacing: -0.025em; margin-bottom: 20px; color: var(--text); }
+h2 { font-size: 2.5rem; font-weight: 500; line-height: 1.18; letter-spacing: -0.02em; margin-bottom: 16px; color: var(--text); }
+h3 { font-size: 1.4rem; font-weight: 500; line-height: 1.3; margin-bottom: 12px; color: var(--text); }
+p, li { font-size: 1.2rem; line-height: 1.6; color: var(--text-secondary); }
+.big-quote { font-size: 2.6rem; font-weight: 300; line-height: 1.35; color: var(--text); letter-spacing: -0.01em; }
+.accent { color: var(--accent); }
+.orange { color: var(--orange); }
+.red { color: var(--red); }
+.mono { font-weight: 500; }
+.dim { color: var(--text-tertiary); }
+.small { font-size: 1rem; }
+.xsmall { font-size: 0.9rem; }
+
+.tag {
+  display: inline-block; padding: 4px 12px; border-radius: 100px;
+  font-size: 0.8rem; font-weight: 600; margin: 2px; letter-spacing: 0.01em;
+}
+.tag-accent { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent-border); }
+.tag-blue { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent-border); }
+.tag-orange { background: var(--orange-soft); color: var(--orange); border: 1px solid var(--orange-border); }
+
+/* Section label */
+.section-label {
+  font-size: 0.8rem; font-weight: 500; text-transform: uppercase;
+  letter-spacing: 0.12em; color: var(--text-tertiary); margin-bottom: 10px;
+}
+
+/* Subtitle */
+.subtitle { font-size: 1.2rem; color: var(--text-secondary); font-weight: 400; margin-top: -8px; margin-bottom: 16px; }
+
+/* Cards */
+.card {
+  background: var(--bg-soft); border: 1px solid var(--border);
+  border-radius: 16px; padding: 24px 28px; margin-bottom: 12px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.card:hover { border-color: var(--border-strong); box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
+.card-row { display: flex; gap: 12px; }
+.card-row .card { flex: 1; }
+
+/* Grid */
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+
+/* Timeline */
+.timeline { position: relative; padding-left: 32px; }
+.timeline::before {
+  content: ''; position: absolute; left: 7px; top: 8px; bottom: 8px;
+  width: 2px; background: var(--accent); opacity: 0.25;
+}
+.timeline-item { position: relative; margin-bottom: 20px; padding-left: 20px; }
+.timeline-item::before {
+  content: ''; position: absolute; left: -28px; top: 8px;
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--accent); border: 2px solid var(--bg);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.timeline-item.highlight::before {
+  background: var(--orange); box-shadow: 0 0 0 3px var(--orange-soft);
+  width: 12px; height: 12px; left: -29px; top: 7px;
+}
+.timeline-date {
+  font-size: 0.9rem;
+  font-weight: 500; color: var(--accent); margin-bottom: 2px; letter-spacing: 0.02em;
+}
+.timeline-item.highlight .timeline-date { color: var(--orange); }
+.timeline-text { font-size: 1.15rem; color: var(--text-secondary); line-height: 1.45; }
+.timeline-text strong { color: var(--text); font-weight: 500; }
+
+/* Table */
+.data-table { width: 100%; border-collapse: separate; border-spacing: 0; margin: 12px 0; }
+.data-table th {
+  text-align: left; font-size: 0.75rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-tertiary); padding: 10px 14px;
+  border-bottom: 1px solid var(--border-strong);
+}
+.data-table td {
+  padding: 12px 14px; font-size: 1rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+.data-table td:first-child { color: var(--text); font-weight: 500; }
+.data-table tr:last-child td { border-bottom: none; }
+.data-table .row-highlight td { background: var(--accent-soft); }
+
+/* Comparison table */
+.cmp-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+.cmp-table th { text-align: center; font-size: 0.95rem; font-weight: 700; padding: 12px 14px; }
+.cmp-table th:first-child { text-align: left; }
+.cmp-table th:nth-child(2) { color: var(--text-tertiary); }
+.cmp-table th:nth-child(3) { color: var(--accent); }
+.cmp-table td { padding: 10px 14px; font-size: 0.95rem; border-top: 1px solid var(--border); }
+.cmp-table td:first-child { color: var(--text-secondary); font-weight: 500; font-size: 0.85rem; }
+.cmp-table td:nth-child(2) { text-align: center; color: var(--text-tertiary); }
+.cmp-table td:nth-child(3) { text-align: center; color: var(--text); }
+
+/* Agent anatomy */
+.agent-body { display: flex; gap: 40px; align-items: center; margin-top: 20px; }
+.agent-figure { width: 180px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; }
+.agent-icon { font-size: 7rem; line-height: 1; }
+.agent-parts { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.agent-part {
+  display: flex; align-items: center; gap: 14px; padding: 12px 18px;
+  background: var(--bg-soft); border: 1px solid var(--border);
+  border-radius: 12px; transition: border-color 0.2s, background 0.2s;
+}
+.agent-part:hover { border-color: var(--accent-border); background: var(--accent-soft); }
+.agent-part-emoji { font-size: 1.6rem; width: 44px; text-align: center; }
+.agent-part-label { font-weight: 700; font-size: 1rem; color: var(--text); }
+.agent-part-desc { font-size: 0.85rem; color: var(--text-secondary); margin-top: 1px; }
+
+/* Channel cards */
+.channel-card {
+  display: flex; align-items: center; gap: 18px; padding: 18px 22px;
+  background: var(--bg-soft); border: 1px solid var(--border);
+  border-radius: 14px; margin-bottom: 10px;
+  transition: border-color 0.2s;
+}
+.channel-card:hover { border-color: var(--border-strong); }
+.channel-icon { font-size: 2rem; width: 48px; text-align: center; }
+.channel-name { font-weight: 700; font-size: 1.05rem; }
+.channel-desc { font-size: 0.9rem; color: var(--text-secondary); }
+
+/* Speed callout */
+.speed-box { display: flex; gap: 16px; margin: 20px 0; }
+.speed-item {
+  flex: 1; text-align: center; padding: 20px;
+  background: var(--bg-soft); border-radius: 14px; border: 1px solid var(--border);
+}
+.speed-num { font-size: 2.4rem; font-weight: 500; letter-spacing: -0.02em; }
+.speed-label { font-size: 0.85rem; color: var(--text-secondary); margin-top: 4px; }
+
+/* Step list */
+.steps { list-style: none; counter-reset: step; }
+.steps li {
+  counter-increment: step; display: flex; align-items: flex-start;
+  gap: 14px; margin-bottom: 14px; font-size: 1.1rem; color: var(--text-secondary);
+}
+.steps li::before {
+  content: counter(step); display: flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; flex-shrink: 0; border-radius: 50%;
+  background: var(--accent-soft); color: var(--accent);
+  font-weight: 700; font-size: 0.95rem; border: 1px solid var(--accent-border);
+}
+
+/* Task examples */
+.task-example {
+  padding: 10px 18px; background: var(--bg-soft);
+  border-left: 3px solid var(--accent); border-radius: 0 10px 10px 0;
+  margin-bottom: 8px;
+  font-size: 0.9rem; color: var(--text);
+}
+
+/* Chat compare */
+.chat-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+.chat-bubble { padding: 14px 18px; border-radius: 14px; font-size: 1rem; line-height: 1.5; }
+.chat-user {
+  background: var(--bg-soft); border: 1px solid var(--border);
+  color: var(--text); text-align: right;
+}
+.chat-ai-bad { background: var(--red-soft); border: 1px solid rgba(220,38,38,0.12); color: var(--red); }
+.chat-ai-good { background: var(--accent-soft); border: 1px solid var(--accent-border); color: var(--accent-dark); }
+.chat-label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+
+/* Navigation */
+.nav-dots {
+  position: fixed; right: 20px; top: 50%; transform: translateY(-50%);
+  display: flex; flex-direction: column; gap: 6px; z-index: 100;
+}
+.nav-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: rgba(0,0,0,0.12); cursor: pointer;
+  transition: all 0.3s; border: none; padding: 0;
+}
+.nav-dot.active {
+  background: var(--accent); transform: scale(1.4);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.nav-dot:hover { background: rgba(0,0,0,0.3); }
+
+.slide-counter {
+  position: fixed; bottom: 20px; right: 28px;
+  font-size: 0.8rem;
+  color: var(--text-tertiary); z-index: 100;
+}
+
+/* Progress bar */
+.progress-bar {
+  position: fixed; top: 0; left: 0; height: 2px;
+  background: var(--accent); z-index: 200;
+  transition: width 0.4s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* Cover */
+.cover-title {
+  font-size: 7rem; font-weight: 500; line-height: 1.05;
+  letter-spacing: -0.035em; color: var(--text);
+}
+.cover-meta {
+  font-size: 1rem; color: var(--text-tertiary); margin-top: 48px;
+  font-weight: 400; letter-spacing: 0.01em;
+}
+.cover-logos {
+  display: flex; gap: 40px; align-items: center; justify-content: center;
+  margin-bottom: 48px; opacity: 0.35;
+}
+.cover-logos img { height: 36px; width: auto; }
+
+/* Stat */
+.stat-huge {
+  font-size: 5rem; font-weight: 500;
+  color: var(--accent); letter-spacing: -0.03em;
+}
+
+/* Divider */
+.divider {
+  height: 1px; background: var(--border-strong);
+  margin: 20px 0;
+}
+
+/* Explanation card */
+.explain-card {
+  margin-top: 20px; padding: 20px 24px;
+  background: var(--bg-soft); border: 1px solid var(--border);
+  border-radius: 14px; border-left: 3px solid var(--accent);
+}
+.explain-card h3 { font-size: 1rem; font-weight: 500; color: var(--accent); margin-bottom: 6px; }
+.explain-card p { font-size: 0.95rem; }
+
+/* Warning card */
+.warn-card {
+  margin-top: 12px; padding: 14px 20px;
+  background: var(--red-soft); border: 1px solid rgba(220,38,38,0.1);
+  border-radius: 12px;
+}
+.warn-card p { font-size: 0.9rem; }
+
+/* Links */
+a { color: inherit; text-decoration: none; border-bottom: 1px solid var(--accent-border); transition: border-color 0.2s; }
+a:hover { border-color: var(--accent); }
+a.plain { border-bottom: none; }
+
+/* Animations */
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+.slide.active .anim { animation: fadeInUp 0.45s ease forwards; opacity: 0; }
+.slide.active .anim-d1 { animation-delay: 0.08s; }
+.slide.active .anim-d2 { animation-delay: 0.16s; }
+.slide.active .anim-d3 { animation-delay: 0.24s; }
+.slide.active .anim-d4 { animation-delay: 0.32s; }
+.slide.active .anim-d5 { animation-delay: 0.4s; }
+.slide.active .anim-d6 { animation-delay: 0.48s; }
+.slide.active .anim-d7 { animation-delay: 0.56s; }
+
+/* Responsive */
+@media (max-width: 900px) {
+  .slide { padding: 28px 20px; }
+  h1 { font-size: 2.2rem; }
+  .cover-title { font-size: 4.5rem; }
+  h2 { font-size: 1.7rem; }
+  .big-quote { font-size: 1.5rem; }
+  .card-row, .grid-3, .grid-2, .chat-compare { grid-template-columns: 1fr; display: flex; flex-direction: column; }
+  .agent-body { flex-direction: column; gap: 20px; }
+  .agent-figure { width: 100%; }
+  .agent-icon { font-size: 4rem; }
+  .speed-box { flex-direction: column; }
+  .stat-huge { font-size: 2.8rem; }
+  .nav-dots { right: 10px; gap: 5px; }
+  .nav-dot { width: 6px; height: 6px; }
+  .data-table, .cmp-table { font-size: 0.85rem; }
+  .data-table th, .data-table td, .cmp-table th, .cmp-table td { padding: 8px 8px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Progress bar -->
+<div class="progress-bar" id="progressBar" style="width: 0%"></div>
+
+<!-- Navigation -->
+<div class="nav-dots" id="navDots"></div>
+<div class="slide-counter" id="slideCounter">1 / 19</div>
+
+<!-- ============================================ -->
+<!-- SLIDE 1: Cover -->
+<!-- ============================================ -->
+<div class="slide active" data-slide="0">
+  <div class="slide-content" style="text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:70vh;">
+    <div class="anim anim-d1 cover-logos">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/b/b0/Claude_AI_symbol.svg" alt="Claude" height="32">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/6/66/OpenAI_logo_2025_%28symbol%29.svg" alt="OpenAI" height="32">
+    </div>
+    <div class="anim anim-d2 cover-title">AI-Агенты</div>
+    <div class="anim anim-d3 cover-meta">Наталья Кистер &middot; 24 февраля 2026</div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- SLIDE 2: Maria's story -->
+<!-- ============================================ -->
+<div class="slide" data-slide="1">
+  <div class="slide-content">
+    <div class="anim anim-d1 big-quote" style="margin-bottom:28px;">
+      Расскажу, как строю и использую свою<br>персональную агентную операционную систему<br>и как это помогает мне в реальной жизни.
+    </div>
+    <div class="divider anim anim-d2"></div>
+    <p class="anim anim-d3" style="font-size:1.25rem; color:var(--text); margin-top:20px;">
+      У каждого свои задачи и процессы &mdash; попробуем найти<br><span class="accent">подходящий способ</span> апгрейднуть то, как вы уже используете AI, до агентного подхода.
+    </p>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- SLIDE 3: Timeline start -->
+<!-- ============================================ -->
+<div class="slide" data-slide="2">
+  <div class="slide-content">
+    <div class="section-label anim">Таймлайн &middot; Начало</div>
+    <h2 class="anim anim-d1">От чата к агентскому подходу</h2>
+    <div class="timeline anim anim-d2" style="margin-top:24px;">
+      <div class="timeline-item">
+        <div class="timeline-date">Ноябрь 2022</div>
+        <div class="timeline-text"><a href="https://chatgpt.com" target="_blank" rel="noopener"><strong>ChatGPT</strong></a> &mdash; все получили доступ к AI через чат. Революция. Но это всё ещё чат: вопрос &rarr; ответ.</div>
+      </div>
+      <div class="timeline-item highlight" style="margin-top:36px;">
+        <div class="timeline-date">Февраль 2025</div>
+        <div class="timeline-text"><a href="https://en.wikipedia.org/wiki/Andrej_Karpathy" target="_blank" rel="noopener"><strong>Андрей Карпатый</strong></a> (со-основатель OpenAI) придумывает термин <strong class="accent">&laquo;вайб-кодинг&raquo;</strong></div>
+      </div>
+    </div>
+    <p class="anim anim-d3" style="text-align:left; margin-top:28px; font-size:1.05rem; color:var(--text-tertiary);">Что такое вайб-кодинг? &darr;</p>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- SLIDE 5: Vibe coding -->
+<!-- ============================================ -->
+<div class="slide" data-slide="3">
+  <div class="slide-content">
+    <div class="section-label anim">Вайб-кодинг</div>
+    <h2 class="anim anim-d1">Что такое вайб-кодинг?</h2>
+    <p class="anim anim-d2" style="font-size:1.15rem; margin-bottom:24px;">Описываешь словами, что хочешь &rarr; AI пишет код. <span class="accent">Без программирования.</span></p>
+    <div class="anim anim-d3" style="display: flex; flex-direction: column; gap: 8px;">
+      <div class="card" style="display:flex; align-items:center; gap:14px; padding: 14px 22px;">
+        <span class="tag tag-accent">В браузере</span>
+        <div><a href="https://bolt.new" target="_blank" rel="noopener"><strong>Bolt.new</strong></a> <span class="dim xsmall">(окт 2024)</span> / <a href="https://lovable.dev" target="_blank" rel="noopener"><strong>Lovable</strong></a> <span class="dim xsmall">(нояб 2024)</span> &mdash; описал &rarr; получил рабочий сайт</div>
+      </div>
+      <div class="card" style="display:flex; align-items:center; gap:14px; padding: 14px 22px;">
+        <span class="tag tag-accent">В браузере</span>
+        <div><a href="https://v0.dev" target="_blank" rel="noopener"><strong>v0</strong></a> &middot; <a href="https://replit.com" target="_blank" rel="noopener"><strong>Replit</strong></a> &mdash; интерфейсы и приложения из описания</div>
+      </div>
+      <div class="card" style="display:flex; align-items:center; gap:14px; padding: 14px 22px;">
+        <span class="tag tag-orange">Редактор</span>
+        <div><a href="https://cursor.com" target="_blank" rel="noopener"><strong>Cursor</strong></a> <span class="dim xsmall">(2023, оценка $9B)</span> / <a href="https://windsurf.com" target="_blank" rel="noopener"><strong>Windsurf</strong></a> &mdash; AI как второй пилот в коде</div>
+      </div>
+    </div>
+    <p class="anim anim-d4 dim" style="margin-top:16px; text-align:left; font-size:0.95rem;">AI может не просто отвечать, а <strong style="color:var(--text);">создавать</strong>. Это подготовило почву для агентов.</p>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- SLIDE 6: Timeline agents -->
+<!-- ============================================ -->
+<div class="slide" data-slide="4">
+  <div class="slide-content">
+    <div class="section-label anim">Таймлайн &middot; Эра агентов</div>
+    <h2 class="anim anim-d1">От вайб-кодинга к агентам</h2>
+    <div class="timeline anim anim-d2" style="margin-top:20px;">
+      <div class="timeline-item">
+        <div class="timeline-date">Февраль 2025</div>
+        <div class="timeline-text"><a href="https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview" target="_blank" rel="noopener"><strong>Claude Code</strong></a> (preview) &mdash; первый <strong>агентный CLI</strong></div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-date">Апрель 2025</div>
+        <div class="timeline-text"><a href="https://github.com/openai/codex" target="_blank" rel="noopener"><strong>OpenAI Codex CLI</strong></a> &mdash; агентный кодер в терминале</div>
+      </div>
+      <div class="timeline-item highlight">
+        <div class="timeline-date">Июль 2025</div>
+        <div class="timeline-text"><a href="https://chatgpt.com" target="_blank" rel="noopener"><strong>ChatGPT Agent Mode</strong></a> &mdash; агенты прямо в ChatGPT</div>
+      </div>
+    </div>
+    <div class="explain-card anim anim-d3">
+      <h3>Что такое &laquo;агентный CLI&raquo;?</h3>
+      <p>AI-агент в терминале. Описываешь задачу &rarr; он сам читает код, вносит изменения, запускает тесты, исправляет ошибки. Работает <strong style="color:var(--text);">автономно</strong>, как сотрудник.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- SLIDE 7: Timeline explosion -->
+<!-- ============================================ -->
+<div class="slide" data-slide="5">
+  <div class="slide-content">
+    <div class="section-label anim">Таймлайн &middot; Взрыв</div>
+    <h2 class="anim anim-d1">Последние 3 месяца &mdash;<br>больше, чем за 2 года</h2>
+    <div class="timeline anim anim-d2" style="margin-top:16px;">
+      <div class="timeline-item">
+        <div class="timeline-date">Ноябрь 2025</div>
+        <div class="timeline-text"><strong>Claude Opus 4.5</strong> &mdash; мощный скачок моделей. &laquo;Кодеры&raquo; начинают строить своих агентов в Cursor, VS Code, терминале...</div>
+      </div>
+      <div class="timeline-item highlight">
+        <div class="timeline-date">Январь 2026</div>
+        <div class="timeline-text"><a href="https://claude.ai/download" target="_blank" rel="noopener"><strong>Claude Cowork</strong></a> &mdash; &laquo;Claude Code для обычных людей&raquo;</div>
+      </div>
+      <div class="timeline-item highlight">
+        <div class="timeline-date">Январь 2026</div>
+        <div class="timeline-text"><a href="https://openclaw.ai" target="_blank" rel="noopener"><strong>OpenClaw</strong></a> взрывает интернет &rarr;</div>
+      </div>
+    </div>
+    <div class="speed-box anim anim-d3">
+      <div class="speed-item">
+        <div class="speed-num accent">2.5 <span class="small">года</span></div>
+        <div class="speed-label">ChatGPT &rarr; вайб-кодинг</div>
+      </div>
+      <div class="speed-item">
+        <div class="speed-num orange">11 <span class="small">мес</span></div>
+        <div class="speed-label">Вайб-кодинг &rarr; агенты для всех</div>
+      </div>
+      <div class="speed-item">
+        <div class="speed-num accent">3 <span class="small">мес</span></div>
+        <div class="speed-label">Нояб 2025 &ndash; фев 2026: взрыв</div>
+      </div>
+    </div>
+    <p class="anim anim-d4 dim" style="text-align:left; font-size:0.95rem;">Карпатый: &laquo;Вайб-кодинг &mdash; уже прошлое. Сейчас &mdash; <strong class="accent">агентная инженерия</strong>.&raquo;</p>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- SLIDE 8: OpenClaw -->
+<!-- ============================================ -->
+<div class="slide" data-slide="6">
+  <div class="slide-content" style="text-align:center;">
+    <div class="section-label anim">Феномен</div>
+    <h1 class="anim anim-d1"><a href="https://openclaw.ai" target="_blank" rel="noopener" class="plain">OpenClaw</a></h1>
+    <div class="stat-huge anim anim-d2">200,000+</div>
+    <p class="anim anim-d3" style="font-size:1.2rem; margin-top:6px;">звёзд на GitHub <span class="dim">&mdash; за 1 месяц</span></p>
+    <p class="anim anim-d3 dim xsmall">Для сравнения: Linux &mdash; 180K за 30+ лет</p>
+    <div class="divider anim anim-d4" style="max-width:200px; margin:20px auto;"></div>
+    <div class="grid-2 anim anim-d5" style="margin-top:16px; text-align:left;">
+      <div class="card">
+        <p><strong>Что это:</strong> Open-source AI-агент. Бесплатный.</p>
+        <p style="margin-top:6px;"><strong>Как работает:</strong> через Telegram / WhatsApp / Signal</p>
+      </div>
+      <div class="card">
+        <p><strong>Создатель:</strong> <a href="https://steipete.me" target="_blank" rel="noopener">Петер Штайнбергер</a> (PSPDFKit)</p>
+        <p style="margin-top:6px;"><strong>14 февраля</strong> &mdash; нанят в OpenAI</p>
+      </div>
+    </div>
+    <p class="anim anim-d6 dim" style="margin-top:14px; font-size:0.95rem;">Для настройки нужны технические знания. Но важно: <strong style="color:var(--text);">персональный агент &mdash; это реально и доступно</strong>.</p>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- SLIDE 9: Agent anatomy -->
+<!-- ============================================ -->
+<div class="slide" data-slide="7">
+  <div class="slide-content">
+    <div class="section-label anim">Анатомия агента</div>
+    <h2 class="anim anim-d1">Агент = цифровой сотрудник</h2>
+    <div class="agent-body anim anim-d2">
+      <div class="agent-figure">
+        <div class="agent-icon">&#129302;</div>
+      </div>
+      <div class="agent-parts">
+        <div class="agent-part">
+          <div class="agent-part-emoji">&#129504;</div>
+          <div><div class="agent-part-label">Мозг <span class="dim small">= LLM</span></div><div class="agent-part-desc">Думает, рассуждает, понимает язык</div></div>
+        </div>
+        <div class="agent-part">
+          <div class="agent-part-emoji">&#128218;</div>
+          <div><div class="agent-part-label">Память <span class="dim small">= контекст</span></div><div class="agent-part-desc">Помнит тебя, задачи, решения</div></div>
+        </div>
+        <div class="agent-part">
+          <div class="agent-part-emoji">&#128064;</div>
+          <div><div class="agent-part-label">Глаза <span class="dim small">= чтение</span></div><div class="agent-part-desc">Видит файлы, сайты, скриншоты</div></div>
+        </div>
+        <div class="agent-part">
+          <div class="agent-part-emoji">&#9997;&#65039;</div>
+          <div><div class="agent-part-label">Руки <span class="dim small">= действия</span></div><div class="agent-part-desc">Пишет, создаёт, отправляет</div></div>
+        </div>
+        <div class="agent-part">
+          <div class="agent-part-emoji">&#9200;</div>
+          <div><div class="agent-part-label">Будильник <span class="dim small">= триггеры</span></div><div class="agent-part-desc">Работает по расписанию и событиям</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- SLIDE 10: Where agent lives -->
+<!-- ============================================ -->
+<div class="slide" data-slide="8">
+  <div class="slide-content">
+    <div class="section-label anim">Где живёт агент</div>
+    <h2 class="anim anim-d1">Офис для сотрудника</h2>
+    <div class="grid-3 anim anim-d2" style="margin-top:20px;">
+      <div class="card" style="text-align:center;">
+        <div style="font-size:2.5rem; margin-bottom:10px;">&#127968;</div>
+        <h3 style="font-size:1.05rem;">Домашний офис</h3>
+        <p style="font-size:0.9rem;">Твой Mac/PC. Выключил &mdash; агент &laquo;ушёл домой&raquo;.</p>
+        <div class="tag tag-accent" style="margin-top:10px;">Cowork &middot; Claude Code</div>
+      </div>
+      <div class="card" style="text-align:center;">
+        <div style="font-size:2.5rem; margin-bottom:10px;">&#9729;&#65039;</div>
+        <h3 style="font-size:1.05rem;">Облако 24/7</h3>
+        <p style="font-size:0.9rem;">Сервер работает всегда. Даже пока ты спишь.</p>
+        <div class="tag tag-blue" style="margin-top:10px;">OpenClaw &middot; ChatGPT</div>
+      </div>
+      <div class="card" style="text-align:center;">
+        <div style="font-size:2.5rem; margin-bottom:10px;">&#127959;&#65039;</div>
+        <h3 style="font-size:1.05rem;">Арендованный офис</h3>
+        <p style="font-size:0.9rem;">VPS в облаке. Работает постоянно, платишь за аренду.</p>
+        <div class="tag tag-orange" style="margin-top:10px;">Для продвинутых</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- SLIDE 11: Communication channels -->
+<!-- ============================================ -->
+<div class="slide" data-slide="9">
+  <div class="slide-content">
+    <div class="section-label anim">Каналы связи</div>
+    <h2 class="anim anim-d1">Как общаться с агентом</h2>
+    <p class="anim anim-d2 dim" style="margin-bottom:20px;">Один агент, разные каналы &mdash; как сотрудник в офисе:</p>
+    <div class="anim anim-d3">
+      <div class="channel-card">
+        <div class="channel-icon">&#128187;</div>
+        <div><div class="channel-name">Лично в офисе</div><div class="channel-desc">Десктоп-приложение (Claude Desktop, VS Code). Полный доступ, всё под рукой.</div></div>
+      </div>
+      <div class="channel-card">
+        <div class="channel-icon">&#128242;</div>
+        <div><div class="channel-name">По телефону / мессенджер</div><div class="channel-desc">Telegram, WhatsApp. Уехала &mdash; пишешь сотруднику, он делает.</div></div>
+      </div>
+      <div class="channel-card">
+        <div class="channel-icon">&#127760;</div>
+        <div><div class="channel-name">Через браузер</div><div class="channel-desc">claude.ai, chatgpt.com &mdash; зашла на сайт, поставила задачу.</div></div>
+      </div>
+    </div>
+    <p class="anim anim-d4 dim" style="margin-top:14px; text-align:center; font-size:0.95rem;">iPad &rarr; Telegram или браузер. Компьютер &rarr; десктоп.</p>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- SLIDE 12: Skills -->
+<!-- ============================================ -->
+<div class="slide" data-slide="10">
+  <div class="slide-content">
+    <div class="section-label anim">Скиллы</div>
+    <h2 class="anim anim-d1">Должностные инструкции</h2>
+    <p class="anim anim-d2" style="font-size:1.15rem; margin-bottom:20px;">
+      Агент умный, но не знает <span class="accent">твою</span> специфику.<br>
+      Скилл = компактная инструкция: <span class="mono dim">&laquo;когда я прошу X &mdash; делай так&raquo;</span>
+    </p>
+    <div class="grid-3 anim anim-d3">
+      <div class="card" style="text-align:center;">
+        <div style="font-size:1.8rem; margin-bottom:8px;">&#9997;&#65039;</div>
+        <p style="font-size:0.95rem;"><strong>Пост для канала</strong><br><span class="dim xsmall">&laquo;Пиши в моём стиле, добавляй личный опыт&raquo;</span></p>
+      </div>
+      <div class="card" style="text-align:center;">
+        <div style="font-size:1.8rem; margin-bottom:8px;">&#127908;</div>
+        <p style="font-size:0.95rem;"><strong>Встреча</strong><br><span class="dim xsmall">&laquo;Расшифруй, выдели решения и задачи&raquo;</span></p>
+      </div>
+      <div class="card" style="text-align:center;">
+        <div style="font-size:1.8rem; margin-bottom:8px;">&#127912;</div>
+        <p style="font-size:0.95rem;"><strong>Презентация</strong><br><span class="dim xsmall">&laquo;Минимализм, крупный текст, визуальные метафоры&raquo;</span></p>
+      </div>
+    </div>
+    <p class="anim anim-d4 dim" style="margin-top:16px; text-align:center; font-size:0.95rem;">Без инструкции сотрудник умный, но не знает, как именно <strong style="color:var(--text);">ты</strong> хочешь.</p>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- SLIDE 13: Connectors -->
+<!-- ============================================ -->
+<div class="slide" data-slide="11">
+  <div class="slide-content">
+    <div class="section-label anim">Подключения</div>
+    <h2 class="anim anim-d1">То, что делает агента <span class="accent">агентом</span></h2>
+    <div class="chat-compare anim anim-d2">
+      <div>
+        <div class="chat-label" style="color:var(--red);">&#10005; Чат (без подключений)</div>
+        <div class="chat-bubble chat-user">&laquo;Какие у меня встречи завтра?&raquo;</div>
+        <div class="chat-bubble chat-ai-bad" style="margin-top:6px;">&laquo;К сожалению, у меня нет доступа к вашему календарю.&raquo;</div>
+      </div>
+      <div>
+        <div class="chat-label" style="color:var(--accent);">&#10003; Агент (с подключением)</div>
+        <div class="chat-bubble chat-user">&laquo;Какие у меня встречи завтра?&raquo;</div>
+        <div class="chat-bubble chat-ai-good" style="margin-top:6px;">&laquo;У тебя 3 встречи: в 10:00 звонок с Катей, в 14:00 дизайн-ревью...&raquo;</div>
+      </div>
+    </div>
+    <div class="anim anim-d3" style="display:flex; gap:6px; flex-wrap:wrap; justify-content:center; margin-top:14px;">
+      <span class="tag tag-accent">Google Calendar</span>
+      <span class="tag tag-accent">Gmail</span>
+      <span class="tag tag-accent">Notion</span>
+      <span class="tag tag-accent">Chrome</span>
+      <span class="tag tag-accent">Файлы</span>
+      <span class="tag tag-accent">Slack</span>
+    </div>
+    <p class="anim anim-d4 dim" style="margin-top:14px; text-align:center; font-size:0.95rem;">Без инструментов сотрудник <em>рассказывает</em>, как бы он сделал. С инструментами &mdash; <strong style="color:var(--text);">делает</strong>.</p>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- SLIDE 14: Team of agents -->
+<!-- ============================================ -->
+<div class="slide" data-slide="12">
+  <div class="slide-content" style="text-align:center;">
+    <div class="section-label anim">Масштабирование</div>
+    <h2 class="anim anim-d1">Команда агентов = компания</h2>
+    <div class="anim anim-d2" style="margin:28px 0;">
+      <div style="font-size:2.8rem;">&#128081;</div>
+      <p style="font-size:1.25rem; color:var(--text); margin-top:6px;"><strong>Ты &mdash; CEO</strong></p>
+      <p class="dim" style="font-size:1.05rem;">Управляешь результатом, а не процессом</p>
+    </div>
+    <div class="grid-3 anim anim-d3" style="max-width:640px; margin:0 auto;">
+      <div class="card" style="text-align:center; padding:18px;">
+        <div style="font-size:1.8rem;">&#127912;</div>
+        <p style="font-size:0.9rem; margin-top:6px;"><strong>Дизайнер</strong></p>
+      </div>
+      <div class="card" style="text-align:center; padding:18px;">
+        <div style="font-size:1.8rem;">&#128200;</div>
+        <p style="font-size:0.9rem; margin-top:6px;"><strong>Аналитик</strong></p>
+      </div>
+      <div class="card" style="text-align:center; padding:18px;">
+        <div style="font-size:1.8rem;">&#9997;&#65039;</div>
+        <p style="font-size:0.9rem; margin-top:6px;"><strong>Редактор</strong></p>
+      </div>
+    </div>
+    <p class="anim anim-d4 dim" style="margin-top:20px; font-size:0.95rem;">Один агент = один сотрудник. Менеджер управляет командой. Каждый отвечает за своё.</p>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- SLIDE 15: Three levels -->
+<!-- ============================================ -->
+<div class="slide" data-slide="13">
+  <div class="slide-content">
+    <div class="section-label anim">Что доступно тебе</div>
+    <h2 class="anim anim-d1">Три уровня входа</h2>
+    <table class="data-table anim anim-d2" style="margin-top:20px;">
+      <thead>
+        <tr>
+          <th></th>
+          <th>Что нужно</th>
+          <th>Инструмент</th>
+          <th>Стоимость</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="row-highlight">
+          <td><span class="tag tag-accent">iPad / iPhone</span></td>
+          <td>Подписка ChatGPT Plus</td>
+          <td><a href="https://chatgpt.com" target="_blank" rel="noopener"><strong>ChatGPT Agent Mode</strong></a></td>
+          <td><span class="mono">$20/мес</span></td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-blue">Mac / Windows</span></td>
+          <td>Claude Desktop</td>
+          <td><a href="https://claude.ai/download" target="_blank" rel="noopener"><strong>Claude Cowork</strong></a></td>
+          <td><span class="mono">$20/мес</span></td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-orange">Продвинутый</span></td>
+          <td>Mac + терминал</td>
+          <td><a href="https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview" target="_blank" rel="noopener"><strong>Claude Code</strong></a> / <a href="https://github.com/openclaw/openclaw" target="_blank" rel="noopener"><strong>OpenClaw</strong></a></td>
+          <td><span class="mono">$20&ndash;100/мес</span></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="warn-card anim anim-d3">
+      <p><strong style="color:var(--red);">Cowork на iPad не работает</strong> <span class="dim">&mdash; iOS &laquo;песочница&raquo; не позволяет приложениям работать с файлами системы.</span></p>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- SLIDE 16: ChatGPT Agent Mode -->
+<!-- ============================================ -->
+<div class="slide" data-slide="14">
+  <div class="slide-content">
+    <div class="section-label anim">Для iPad/iPhone</div>
+    <h2 class="anim anim-d1"><a href="https://chatgpt.com" target="_blank" rel="noopener" class="plain">ChatGPT Agent Mode</a></h2>
+    <p class="anim anim-d2 dim" style="margin-bottom:16px;">Запущен июль 2025. Это <strong style="color:var(--text);">не</strong> обычный ChatGPT:</p>
+    <table class="cmp-table anim anim-d3">
+      <thead>
+        <tr>
+          <th></th>
+          <th>Обычный ChatGPT</th>
+          <th>Agent Mode &#9889;</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Работа</td>
+          <td>Вопрос &rarr; ответ</td>
+          <td>Задача &rarr; план &rarr; результат</td>
+        </tr>
+        <tr>
+          <td>Инструменты</td>
+          <td>Текст</td>
+          <td>Браузер, терминал, код</td>
+        </tr>
+        <tr>
+          <td>Память</td>
+          <td>Базовая</td>
+          <td>Между сессиями</td>
+        </tr>
+        <tr>
+          <td>Автономность</td>
+          <td>Ты ведёшь</td>
+          <td>Сам планирует</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="anim anim-d4" style="margin-top:16px; display:flex; gap:12px; flex-wrap:wrap;">
+      <div class="card" style="flex:1; min-width:180px; text-align:center;">
+        <p class="xsmall dim">Connectors</p>
+        <p style="font-size:1rem;"><strong>Gmail &middot; Calendar &middot; Contacts</strong></p>
+        <p class="xsmall dim">Settings &rarr; Connectors</p>
+      </div>
+      <div class="card" style="flex:1; min-width:180px; text-align:center;">
+        <p class="xsmall dim">Лимит (Plus)</p>
+        <p><strong class="mono" style="font-size:1.3rem;">40</strong> <span class="dim small">сообщений/мес</span></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- SLIDE 17: Claude Cowork -->
+<!-- ============================================ -->
+<div class="slide" data-slide="15">
+  <div class="slide-content">
+    <div class="section-label anim">Для Mac / Windows</div>
+    <h2 class="anim anim-d1"><a href="https://claude.ai/download" target="_blank" rel="noopener" class="plain">Claude Cowork</a></h2>
+    <p class="anim anim-d2 subtitle">Агент для обычных людей. Январь 2026.</p>
+    <div class="grid-2 anim anim-d3" style="margin-top:16px;">
+      <div class="card">
+        <div style="font-size:1.8rem; margin-bottom:10px;">&#128193;</div>
+        <h3 style="font-size:1.05rem;">Работает с файлами</h3>
+        <p style="font-size:0.9rem;">Даёшь доступ к папке &rarr; агент читает, создаёт, организует файлы.</p>
+      </div>
+      <div class="card">
+        <div style="font-size:1.8rem; margin-bottom:10px;">&#128274;</div>
+        <h3 style="font-size:1.05rem;">Безопасно</h3>
+        <p style="font-size:0.9rem;">Работает в виртуальной машине. Не сломает ничего.</p>
+      </div>
+      <div class="card">
+        <div style="font-size:1.8rem; margin-bottom:10px;">&#128268;</div>
+        <h3 style="font-size:1.05rem;">Подключения</h3>
+        <p style="font-size:0.9rem;">Chrome (браузер), MCP-серверы &mdash; календарь, почта, Notion...</p>
+      </div>
+      <div class="card">
+        <div style="font-size:1.8rem; margin-bottom:10px;">&#128176;</div>
+        <h3 style="font-size:1.05rem;">$20/мес</h3>
+        <p style="font-size:0.9rem;">Pro план Claude. Установка за 5 минут.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- SLIDE 18: Practice -->
+<!-- ============================================ -->
+<div class="slide" data-slide="16">
+  <div class="slide-content">
+    <div class="section-label anim">Практика</div>
+    <h1 class="anim anim-d1">Пробуем <span class="accent">сами</span></h1>
+    <ol class="steps anim anim-d2" style="margin-top:24px;">
+      <li><div><strong style="color:var(--text);">Определи уровень</strong><br><span class="dim">iPad &rarr; ChatGPT &middot; Компьютер &rarr; Cowork</span></div></li>
+      <li><div><strong style="color:var(--text);">Подключи коннекторы</strong><br><span class="dim">Gmail, Calendar &mdash; это то, что превращает чат в агента</span></div></li>
+      <li><div><strong style="color:var(--text);">Придумай задачу из своей жизни</strong><br><span class="dim">Не вопрос &mdash; а задачу с действием!</span></div></li>
+      <li><div><strong style="color:var(--text);">Попроси агента решить</strong></div></li>
+      <li><div><strong style="color:var(--text);">Обсуждаем результаты</strong></div></li>
+    </ol>
+    <div class="anim anim-d3" style="margin-top:16px;">
+      <p class="dim xsmall" style="margin-bottom:6px;">Примеры задач:</p>
+      <div class="task-example">&laquo;Зайди на сайт X, найди информацию, создай документ с выжимкой&raquo;</div>
+      <div class="task-example">&laquo;Посмотри мой календарь и предложи время для тренировки&raquo;</div>
+      <div class="task-example">&laquo;Вот 5 фото чеков &mdash; создай таблицу расходов&raquo;</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================
+// Slide navigation
+// ============================================
+const slides = document.querySelectorAll('.slide');
+const totalSlides = slides.length;
+let currentSlide = 0;
+let isAnimating = false;
+
+// Build nav dots
+const navDots = document.getElementById('navDots');
+for (let i = 0; i < totalSlides; i++) {
+  const dot = document.createElement('button');
+  dot.className = 'nav-dot' + (i === 0 ? ' active' : '');
+  dot.addEventListener('click', () => goToSlide(i));
+  navDots.appendChild(dot);
+}
+
+function updateProgress() {
+  const pct = totalSlides > 1 ? (currentSlide / (totalSlides - 1)) * 100 : 0;
+  document.getElementById('progressBar').style.width = pct + '%';
+}
+updateProgress();
+
+function goToSlide(n) {
+  if (n < 0 || n >= totalSlides || n === currentSlide || isAnimating) return;
+  isAnimating = true;
+
+  const prev = slides[currentSlide];
+  const next = slides[n];
+
+  // Deactivate previous slide (CSS handles fade-out via removing .active)
+  prev.classList.remove('active');
+
+  // Activate next slide (CSS handles fade-in via .active)
+  next.classList.add('active');
+
+  // Update nav
+  navDots.children[currentSlide].classList.remove('active');
+  navDots.children[n].classList.add('active');
+  currentSlide = n;
+  document.getElementById('slideCounter').textContent = `${currentSlide + 1} / ${totalSlides}`;
+  updateProgress();
+
+  setTimeout(() => { isAnimating = false; }, 520);
+}
+
+// Keyboard navigation
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'ArrowDown') {
+    e.preventDefault();
+    goToSlide(currentSlide + 1);
+  } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    goToSlide(currentSlide - 1);
+  } else if (e.key === 'Home') {
+    goToSlide(0);
+  } else if (e.key === 'End') {
+    goToSlide(totalSlides - 1);
+  }
+});
+
+// ============================================
+// 1. Trackpad / mouse wheel (Mac Safari, Chrome, etc.)
+// ============================================
+let wheelDelta = 0;
+let wheelTimer = null;
+let wheelCooldown = false;
+
+document.addEventListener('wheel', function(e) {
+  e.preventDefault();
+  if (wheelCooldown) return;
+
+  // Use deltaX for horizontal scroll, deltaY for vertical scroll
+  const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+  wheelDelta += delta;
+
+  clearTimeout(wheelTimer);
+  wheelTimer = setTimeout(function() {
+    if (Math.abs(wheelDelta) > 30) {
+      wheelCooldown = true;
+      if (wheelDelta > 0) goToSlide(currentSlide + 1);
+      else goToSlide(currentSlide - 1);
+      setTimeout(function() { wheelCooldown = false; }, 600);
+    }
+    wheelDelta = 0;
+  }, 80);
+}, {passive: false});
+
+// ============================================
+// 2. Touch swipe (iPad, phone)
+// ============================================
+let touchSX = 0, touchSY = 0;
+
+document.addEventListener('touchstart', function(e) {
+  touchSX = e.touches[0].clientX;
+  touchSY = e.touches[0].clientY;
+}, {passive: true});
+
+document.addEventListener('touchend', function(e) {
+  const dx = e.changedTouches[0].clientX - touchSX;
+  const dy = e.changedTouches[0].clientY - touchSY;
+  if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+    if (dx < 0) goToSlide(currentSlide + 1);
+    else goToSlide(currentSlide - 1);
+  }
+}, {passive: true});
+</script>
+</body>
+</html>
