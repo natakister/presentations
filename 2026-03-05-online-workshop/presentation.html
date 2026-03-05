@@ -1,0 +1,2702 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI-Агенты: От чата к персональной операционной системе</title>
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #f5f5f7;
+  --bg-soft: #ffffff;
+  --bg-card: #ffffff;
+  --bg-dark: #1d1d1f;
+  --border: rgba(0,0,0,0.04);
+  --border-strong: rgba(0,0,0,0.08);
+  --text: #1d1d1f;
+  --text-secondary: #86868b;
+  --text-tertiary: #86868b;
+  --accent: #0071e3;
+  --accent-soft: rgba(0,113,227,0.06);
+  --accent-border: rgba(0,113,227,0.15);
+  --accent-light: #2997ff;
+  --orange: #0071e3;
+  --orange-soft: rgba(0,113,227,0.06);
+  --orange-border: rgba(0,113,227,0.15);
+  --red: #dc2626;
+  --red-soft: rgba(220,38,38,0.04);
+  --green: #16a34a;
+  --green-soft: rgba(22,163,74,0.04);
+  --green-border: rgba(22,163,74,0.15);
+  --blue: #0071e3;
+  --blue-soft: rgba(0,113,227,0.06);
+  --blue-border: rgba(0,113,227,0.15);
+}
+
+html, body {
+  width: 100%; height: 100%; overflow: hidden;
+  background: var(--bg); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ========== SLIDES ========== */
+.slide {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  padding: 60px 80px;
+  opacity: 0; transform: translateX(40px);
+  transition: opacity 0.5s cubic-bezier(0.4,0,0.2,1), transform 0.5s cubic-bezier(0.4,0,0.2,1);
+  pointer-events: none; z-index: 1;
+}
+.slide.active {
+  opacity: 1; transform: translateX(0); pointer-events: auto;
+}
+.slide.exit-left {
+  opacity: 0; transform: translateX(-40px);
+}
+.slide-content { max-width: 1200px; width: 100%; position: relative; z-index: 2; }
+
+/* ========== TYPOGRAPHY ========== */
+h1 { font-size: 4rem; font-weight: 700; line-height: 1.08; letter-spacing: -0.03em; margin-bottom: 24px; color: var(--text); }
+h2 { font-size: 3.2rem; font-weight: 700; line-height: 1.08; letter-spacing: -0.025em; margin-bottom: 20px; color: var(--text); }
+h3 { font-size: 1.7rem; font-weight: 600; line-height: 1.2; margin-bottom: 14px; color: var(--text); }
+p, li { font-size: 1.4rem; line-height: 1.55; color: var(--text); }
+.big-quote { font-size: 3.2rem; font-weight: 600; line-height: 1.2; color: var(--text); letter-spacing: -0.02em; }
+.accent { color: var(--accent); }
+.orange { color: var(--orange); }
+.red { color: var(--red); }
+.green { color: var(--green); }
+.mono { font-weight: 600; }
+.dim { color: var(--text-secondary); }
+.small { font-size: 1.15rem; }
+.xsmall { font-size: 1.05rem; }
+.xxsmall { font-size: 0.95rem; }
+
+/* ========== TAGS ========== */
+.tag {
+  display: inline-block; padding: 6px 16px; border-radius: 100px;
+  font-size: 0.95rem; font-weight: 600; margin: 3px; letter-spacing: 0;
+}
+.tag-accent { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent-border); }
+.tag-green { background: var(--green-soft); color: var(--green); border: 1px solid var(--green-border); }
+.tag-blue { background: var(--blue-soft); color: var(--blue); border: 1px solid var(--blue-border); }
+.tag-orange { background: var(--orange-soft); color: var(--orange); border: 1px solid var(--orange-border); }
+.tag-red { background: var(--red-soft); color: var(--red); border: 1px solid rgba(220,38,38,0.2); }
+
+/* ========== SECTION LABEL ========== */
+.section-label {
+  font-size: 1rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--accent); margin-bottom: 12px;
+}
+
+/* ========== SUBTITLE ========== */
+.subtitle { font-size: 1.4rem; color: var(--text-secondary); font-weight: 400; margin-top: -8px; margin-bottom: 20px; }
+
+/* ========== CARDS ========== */
+.card {
+  background: var(--bg-soft); border: none;
+  border-radius: 20px; padding: 28px 32px; margin-bottom: 14px;
+}
+.card:hover { box-shadow: none; }
+.card-row { display: flex; gap: 14px; }
+.card-row .card { flex: 1; }
+
+/* Dark cards (Apple-style) */
+.card-dark {
+  background: var(--bg-dark); color: #f5f5f7; border: none;
+  border-radius: 20px; padding: 28px 32px; margin-bottom: 14px;
+}
+.card-dark h3, .card-dark .agent-part-label, .card-dark .channel-name { color: #f5f5f7; }
+.card-dark p, .card-dark li, .card-dark .agent-part-desc, .card-dark .channel-desc { color: #a1a1a6; }
+
+/* Gradient cards */
+.card-gradient-blue {
+  background: linear-gradient(135deg, #d6e8f7 0%, #e8f0fb 100%); border: none;
+  border-radius: 20px; padding: 28px 32px; margin-bottom: 14px;
+}
+.card-gradient-dark {
+  background: linear-gradient(135deg, #1d1d1f 0%, #2d2d30 100%); color: #f5f5f7; border: none;
+  border-radius: 20px; padding: 28px 32px; margin-bottom: 14px;
+}
+.card-gradient-dark h3 { color: #f5f5f7; }
+.card-gradient-dark p, .card-gradient-dark li { color: #a1a1a6; }
+
+/* Dark slide variant */
+.slide-dark { background: var(--bg-dark); }
+body.on-dark-slide .nav-dot { background: rgba(255,255,255,0.2); }
+body.on-dark-slide .nav-dot.active { background: #f5f5f7; }
+body.on-dark-slide .nav-dot:hover { background: rgba(255,255,255,0.4); }
+body.on-dark-slide .slide-counter { color: rgba(255,255,255,0.4); }
+body.on-dark-slide .progress-bar { background: #f5f5f7; }
+.slide-dark h1, .slide-dark h2, .slide-dark h3, .slide-dark .cover-title, .slide-dark .section-title { color: #f5f5f7; }
+.slide-dark p, .slide-dark li, .slide-dark .subtitle, .slide-dark .cover-subtitle { color: #a1a1a6; }
+.slide-dark .section-label { color: var(--accent-light); }
+.slide-dark .cover-meta { color: #a1a1a6; }
+.slide-dark .big-quote { color: #f5f5f7; }
+.slide-dark .explain-card { background: linear-gradient(145deg, rgba(220,232,245,0.12) 0%, rgba(232,242,252,0.15) 100%); }
+.slide-dark .explain-card p, .slide-dark .explain-card h3 { color: #f5f5f7; }
+.slide-dark .divider { background: rgba(255,255,255,0.15); }
+.slide-dark .card { background: rgba(255,255,255,0.08); }
+.slide-dark .card h3 { color: #f5f5f7; }
+.slide-dark .card p { color: #a1a1a6; }
+.slide-dark a { color: var(--accent-light); }
+
+/* ========== GRIDS ========== */
+.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+
+/* ========== TIMELINE ========== */
+.timeline { position: relative; padding-left: 44px; }
+.timeline::before {
+  content: ''; position: absolute; left: 8px; top: 8px; bottom: 8px;
+  width: 2px; background: var(--text); opacity: 0.12;
+}
+.timeline-item { position: relative; margin-bottom: 28px; padding-left: 24px; }
+.timeline-item::before {
+  content: ''; position: absolute; left: -42px; top: 8px;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: #1d1d1f; border: 2px solid var(--bg);
+}
+.timeline-item.highlight::before {
+  background: var(--accent);
+  width: 16px; height: 16px; left: -43px; top: 7px;
+  border: 2px solid var(--bg);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.timeline-date {
+  font-size: 1.05rem; font-weight: 600; color: var(--text); margin-bottom: 4px;
+}
+.timeline-item.highlight .timeline-date { color: var(--accent); }
+.timeline-text { font-size: 1.3rem; color: var(--text); line-height: 1.45; }
+.timeline-text strong { color: var(--text); font-weight: 600; }
+
+/* ========== TABLES ========== */
+.data-table { width: 100%; border-collapse: separate; border-spacing: 0; margin: 16px 0; }
+.data-table th {
+  text-align: left; font-size: 0.95rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--text-secondary); padding: 14px 18px;
+  border-bottom: 1px solid var(--border-strong);
+}
+.data-table td {
+  padding: 14px 18px; font-size: 1.15rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+.data-table td:first-child { color: var(--text); font-weight: 600; }
+.data-table tr:last-child td { border-bottom: none; }
+.data-table .row-highlight td { background: var(--accent-soft); }
+
+/* Comparison table */
+.cmp-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+.cmp-table th { text-align: center; font-size: 1.1rem; font-weight: 700; padding: 14px 18px; }
+.cmp-table th:first-child { text-align: left; }
+.cmp-table th:nth-child(2) { color: var(--text-secondary); }
+.cmp-table th:nth-child(3) { color: var(--accent); }
+.cmp-table td { padding: 12px 18px; font-size: 1.1rem; border-top: 1px solid var(--border); }
+.cmp-table td:first-child { color: var(--text); font-weight: 600; font-size: 1rem; }
+.cmp-table td:nth-child(2) { text-align: center; color: var(--text-secondary); }
+.cmp-table td:nth-child(3) { text-align: center; color: var(--text); }
+
+/* ========== AGENT ANATOMY ========== */
+.agent-body { display: flex; gap: 48px; align-items: center; margin-top: 24px; }
+.agent-figure { width: 180px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; }
+.agent-icon { font-size: 7rem; line-height: 1; }
+.agent-parts { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+.agent-part {
+  display: flex; align-items: center; gap: 16px; padding: 16px 22px;
+  background: var(--bg-soft); border: none;
+  border-radius: 16px;
+}
+.agent-part:hover { background: var(--accent-soft); }
+.agent-part-emoji { font-size: 1.8rem; width: 48px; text-align: center; }
+.agent-part-label { font-weight: 600; font-size: 1.15rem; color: var(--text); }
+.agent-part-desc { font-size: 1rem; color: var(--text-secondary); margin-top: 2px; }
+
+/* ========== CHANNEL CARDS ========== */
+.channel-card {
+  display: flex; align-items: center; gap: 20px; padding: 20px 26px;
+  background: var(--bg-soft); border: none;
+  border-radius: 16px; margin-bottom: 12px;
+}
+.channel-card:hover { opacity: 0.85; }
+.channel-icon { font-size: 2.2rem; width: 52px; text-align: center; }
+.channel-name { font-weight: 600; font-size: 1.2rem; }
+.channel-desc { font-size: 1.05rem; color: var(--text-secondary); }
+
+/* ========== SPEED / STAT ========== */
+.speed-box { display: flex; gap: 20px; margin: 24px 0; }
+.speed-item {
+  flex: 1; text-align: center; padding: 28px;
+  background: var(--bg-soft); border-radius: 20px; border: none;
+}
+.speed-num { font-size: 3rem; font-weight: 700; letter-spacing: -0.03em; color: var(--text); }
+.speed-label { font-size: 1rem; color: var(--text-secondary); margin-top: 6px; }
+.stat-huge {
+  font-size: 6rem; font-weight: 700;
+  color: var(--accent); letter-spacing: -0.03em;
+}
+
+/* ========== STEP LIST ========== */
+.steps { list-style: none; counter-reset: step; }
+.steps li {
+  counter-increment: step; display: flex; align-items: flex-start;
+  gap: 18px; margin-bottom: 18px; font-size: 1.3rem; color: var(--text);
+}
+.steps li::before {
+  content: counter(step); display: flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; flex-shrink: 0; border-radius: 50%;
+  background: var(--bg-soft); color: var(--text);
+  font-weight: 700; font-size: 1.1rem; border: none;
+}
+
+/* ========== TASK EXAMPLES ========== */
+.task-example {
+  padding: 14px 22px; background: var(--bg-soft);
+  border-left: 3px solid var(--accent); border-radius: 0 12px 12px 0;
+  margin-bottom: 10px;
+  font-size: 1.1rem; color: var(--text);
+}
+
+/* ========== CHAT COMPARE ========== */
+.chat-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }
+.chat-bubble { padding: 18px 24px; border-radius: 18px; font-size: 1.15rem; line-height: 1.5; }
+.chat-user { background: var(--bg-soft); border: none; color: var(--text); text-align: right; }
+.chat-ai-bad { background: var(--red-soft); border: none; color: var(--red); }
+.chat-ai-good { background: var(--accent-soft); border: none; }
+.chat-label { font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 8px; }
+
+/* ========== USE CASE CARDS ========== */
+.usecase-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+.usecase-before, .usecase-after {
+  padding: 24px 28px; border-radius: 18px;
+}
+.usecase-before {
+  background: var(--bg-soft); border: none;
+}
+.usecase-after {
+  background: var(--accent-soft); border: none;
+}
+.usecase-label { font-size: 0.9rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 10px; }
+
+/* ========== EXPLAIN / WARN CARDS ========== */
+.explain-card {
+  margin-top: 24px; padding: 26px 36px 26px 68px;
+  background: linear-gradient(to right, #b8d4ec 0%, #d6eaf8 45%, #edf6fd 100%);
+  border: none; border-radius: 20px; border-left: none;
+  position: relative; text-align: left;
+}
+.explain-card::before {
+  content: '';
+  position: absolute;
+  left: 26px; top: 50%; transform: translateY(-50%);
+  width: 22px; height: 22px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22' viewBox='0 0 24 24' fill='none' stroke='%230055a5' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 16v-4'/%3E%3Ccircle cx='12' cy='8' r='0.5' fill='%230055a5'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+.explain-card h3 { font-size: 1.15rem; font-weight: 600; color: #1d1d1f; margin-bottom: 8px; }
+.explain-card p { font-size: 1.1rem; color: #1d1d1f; }
+
+.warn-card {
+  margin-top: 14px; padding: 18px 24px;
+  background: var(--red-soft); border: none;
+  border-radius: 16px;
+}
+.warn-card p { font-size: 1.05rem; }
+
+.success-card {
+  margin-top: 14px; padding: 18px 24px;
+  background: var(--green-soft); border: none;
+  border-radius: 16px;
+}
+
+/* ========== DIVIDER ========== */
+.divider { height: 1px; background: var(--border-strong); margin: 20px 0; }
+
+/* ========== COVER ========== */
+.cover-title {
+  font-size: 7rem; font-weight: 700; line-height: 1.02;
+  letter-spacing: -0.04em; color: var(--text);
+}
+.cover-subtitle {
+  font-size: 1.8rem; font-weight: 400; color: var(--text-secondary);
+  margin-top: 20px; letter-spacing: -0.01em;
+}
+.cover-meta {
+  font-size: 1.1rem; color: var(--text-secondary); margin-top: 56px;
+  font-weight: 400;
+}
+
+/* ========== SECTION DIVIDER SLIDES ========== */
+.section-title {
+  font-size: 4.5rem; font-weight: 700; line-height: 1.05;
+  letter-spacing: -0.03em; color: var(--text);
+}
+.section-subtitle {
+  font-size: 1.5rem; font-weight: 400; color: var(--text-secondary);
+  margin-top: 16px;
+}
+
+/* ========== FLOW DIAGRAM ========== */
+.flow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 20px 0; }
+.flow-step {
+  padding: 12px 22px; background: var(--bg-soft); border: none;
+  border-radius: 14px; font-size: 1.1rem; font-weight: 600; color: var(--text);
+}
+.flow-arrow { color: var(--text-secondary); font-size: 1.3rem; font-weight: 600; }
+.flow-step.active { background: var(--accent-soft); color: var(--accent); }
+
+/* ========== LINKS ========== */
+a { color: var(--text); text-decoration: none; background: linear-gradient(transparent 60%, #c8e8f8 60%); padding: 0 2px; transition: background 0.15s; }
+a:hover { background: linear-gradient(transparent 48%, #b0dcf5 48%); }
+a.plain { background: none; padding: 0; }
+.slide-dark a { color: #f5f5f7; background: linear-gradient(transparent 60%, var(--accent) 60%); }
+
+/* ========== LEVEL INDICATORS ========== */
+.level-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 18px; border-radius: 100px; font-size: 1rem; font-weight: 600;
+}
+.level-1 { background: var(--blue-soft); color: var(--blue); border: none; }
+.level-2 { background: var(--blue); color: #ffffff; border: none; }
+.level-3 { background: #1d1d1f; color: #ffffff; border: none; }
+
+/* ========== BREAK SLIDE ========== */
+.break-icon { font-size: 5rem; margin-bottom: 20px; }
+
+/* ========== NAVIGATION ========== */
+.nav-dots {
+  position: fixed; right: 20px; top: 50%; transform: translateY(-50%);
+  display: flex; flex-direction: column; gap: 4px; z-index: 100;
+}
+.nav-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: rgba(0,0,0,0.1); cursor: pointer;
+  transition: all 0.3s; border: none; padding: 0;
+}
+.nav-dot.active {
+  background: var(--text); transform: scale(1.5);
+}
+.nav-dot:hover { background: rgba(0,0,0,0.25); }
+
+/* Block separators in nav */
+.nav-block-sep {
+  height: 1px; width: 14px; background: rgba(0,0,0,0.18);
+  margin: 5px 0; position: relative;
+}
+.nav-block-label {
+  position: absolute; right: calc(100% + 5px); top: -6px;
+  font-size: 7px; font-weight: 800; color: rgba(0,0,0,0.3);
+  white-space: nowrap; letter-spacing: 0.02em;
+}
+body.on-dark-slide .nav-block-sep { background: rgba(255,255,255,0.25); }
+body.on-dark-slide .nav-block-label { color: rgba(255,255,255,0.4); }
+
+.slide-counter {
+  position: fixed; bottom: 24px; right: 32px;
+  font-size: 0.9rem; color: var(--text-secondary); z-index: 100;
+  font-weight: 500;
+}
+
+/* Progress bar */
+.progress-bar {
+  position: fixed; top: 0; left: 0; height: 2px;
+  background: var(--text); z-index: 200;
+  transition: width 0.4s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* ========== ANIMATIONS ========== */
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+.slide.active .anim { animation: fadeInUp 0.45s ease forwards; opacity: 0; }
+.slide.active .anim-d1 { animation-delay: 0.08s; }
+.slide.active .anim-d2 { animation-delay: 0.16s; }
+.slide.active .anim-d3 { animation-delay: 0.24s; }
+.slide.active .anim-d4 { animation-delay: 0.32s; }
+.slide.active .anim-d5 { animation-delay: 0.4s; }
+.slide.active .anim-d6 { animation-delay: 0.48s; }
+.slide.active .anim-d7 { animation-delay: 0.56s; }
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 900px) {
+  .slide { padding: 32px 24px; }
+  h1 { font-size: 2.4rem; }
+  .cover-title { font-size: 4rem; }
+  h2 { font-size: 2rem; }
+  .big-quote { font-size: 1.8rem; }
+  .card-row, .grid-3, .grid-2, .chat-compare, .usecase-grid { grid-template-columns: 1fr; display: flex; flex-direction: column; }
+  .agent-body { flex-direction: column; gap: 20px; }
+  .agent-figure { width: 100%; }
+  .agent-icon { font-size: 4rem; }
+  .speed-box { flex-direction: column; }
+  .stat-huge { font-size: 3.5rem; }
+  .nav-dots { right: 10px; gap: 3px; }
+  .nav-dot { width: 5px; height: 5px; }
+  .data-table, .cmp-table { font-size: 1rem; }
+  .data-table th, .data-table td, .cmp-table th, .cmp-table td { padding: 10px 10px; }
+  .section-title { font-size: 2.8rem; }
+}
+
+/* meme chaos — no CSS needed, all inline via JS */
+
+/* ========== NAV ARROWS ========== */
+.nav-arrow {
+  position: fixed;
+  right: auto; left: 50%; transform: translateX(-50%);
+  width: 44px;
+  height: 44px;
+  background: rgba(120,120,120,0.4);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  transition: background 0.2s;
+}
+.nav-arrow:hover { background: rgba(120,120,120,0.7); }
+.nav-arrow-up { top: 12px; }
+.nav-arrow-down { bottom: 12px; }
+</style>
+</head>
+<body>
+
+<!-- Progress bar -->
+<div class="progress-bar" id="progressBar" style="width: 0%"></div>
+
+<!-- Navigation -->
+<div class="nav-dots" id="navDots"></div>
+<div class="slide-counter" id="slideCounter">1 / 65</div>
+
+<!-- Nav arrows -->
+<button class="nav-arrow nav-arrow-up" onclick="goToSlide(currentSlide - 1)" title="Предыдущий слайд">↑</button>
+<button class="nav-arrow nav-arrow-down" onclick="goToSlide(currentSlide + 1)" title="Следующий слайд">↓</button>
+
+<!-- ========================================== -->
+<!-- BLOCK 1: SLIDES 1-16                       -->
+<!-- ========================================== -->
+
+<!-- SLIDE 1: Cover -->
+<div class="slide slide-dark active" data-notes="Привет всем! Меня зовут Наталья Кистер. Продуктовый бекграунд, больше 20 лет в IT. Сегодня мы говорим об AI-агентах — о том, как AI перестал быть чатом и стал рабочей средой.
+
+Agenda воркшопа: идём поступательно, блоками. Первые два блока — более теоретические: без базы не получится. Способов использовать AI много, для любого уровня — расскажу и покажу все варианты. Не обязательно сразу идти в продвинутое, можно начать просто и уже получать пользу.
+
+Дальше будет практика: покажу живую систему, как она работает. Для тех, кто захочет попробовать сразу — потребуются подключения. Но даже без них — останется запись и пошаговая инструкция, чтобы пройти всё потом спокойно.
+
+Формат: будут перерывы для вопросов. Вопросы можно писать в чат в процессе — прочитаю. Технические вопросы можно задавать Каю в чате прямо сейчас.
+
+Останется презентация с пошаговой инструкцией — можно будет спокойно пройти всё после встречи.
+
+Главная цель — не нажать кнопки в конкретном сервисе, а понять принцип. [click]">
+  <div class="slide-content" style="text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:70vh;">
+    <div class="anim anim-d1 section-label">Онлайн-воркшоп &middot; 5 марта 2026</div>
+    <div class="anim anim-d2 cover-title">AI-Агенты</div>
+    <div class="anim anim-d3 cover-subtitle">От чата к персональной<br>операционной системе</div>
+    <div class="anim anim-d4 cover-meta">
+      <a href="https://nataliakister.com" target="_blank">Наталья Кистер</a>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 2: Memes -->
+<div class="slide" data-notes="Но прежде чем начнём — давайте честно. Если вы в последние месяцы открывали Twitter, LinkedIn или любую новостную ленту, вы видели примерно вот это. [click] Ощущение, что все вокруг строят каких-то агентов, произносят незнакомые слова, и ты немного чувствуешь, что что-то пропустил, куда-то опоздал. Что все уже что-то знают, а ты — не знаешь. [click] Если вы здесь сегодня — скорее всего, вы тоже это чувствуете. И это нормально. Потому что скорость изменений действительно стремительная. Давайте разберёмся, что реально произошло.">
+  <div class="slide-content" style="text-align:center;">
+    <h2 class="anim">Интернет сошёл с ума</h2>
+    <p class="anim anim-d1 dim" style="margin-bottom:20px;">Последние 3 месяца в вашей ленте</p>
+
+    <!-- Chaos container -->
+    <div id="meme-chaos" class="anim anim-d2" style="position:relative;width:calc(100% + 160px);margin:16px -80px 20px;height:340px;overflow:hidden;"></div>
+
+    <div class="anim anim-d3 explain-card" style="margin-top:0;">
+      <p>Если чувствуете, что что-то пропустили &mdash; вы не одни. Скорость изменений реально стремительная.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 3: Таймлайн — Начало -->
+<div class="slide" data-notes="Ноябрь 2022 — ChatGPT. Все получили доступ к AI через чат. На тот момент это реальная революция. Хотя это чат: вопрос → ответ. 2024 год — появляются Bolt, Lovable, Cursor. Bolt и Lovable — это визуальные инструменты: описываешь словами, что хочешь — получаешь готовый сайт или приложение. Без программирования. Если до этого был No Code и конструкторы, то тут всё перешло на совершенно новый уровень. Плюс появляется Cursor — это другая история: это редактор кода для программистов, где AI встроен как второй пилот. Через него продвинутые разработчики уже тогда начали использовать AI не просто для написания кода, а для выстраивания рабочих процессов. Февраль 2025 — Андрей Карпатый, сооснователь OpenAI, придумывает для этого термин: «вайб-кодинг». Понятие уже витало в воздухе, инструменты уже существовали — он просто дал ему имя. И оно мгновенно ушло в народ. Это важный момент: AI научился не просто отвечать, а делать. Примерно в это время в моём окружении все начинают говорить про «агентность». Я ещё не до конца понимаю, что конкретно это значит, но слово уже в воздухе. А по сути, агентность — это понятие, которое можно применить и к человеку. Агентный человек — это тот, кто действует автономно: сам видит проблему, сам принимает решение, сам выполняет. Ему не нужно говорить каждый шаг — достаточно обозначить цель. Так вот, агентный AI — это ровно то же самое. Не просто «ответил на вопрос», а сам увидел, что нужно сделать, разбил на шаги и выполнил. Вот к этому всё и шло.">
+  <div class="slide-content">
+    <div class="anim section-label">Как мы сюда попали</div>
+    <h2 class="anim anim-d1">Таймлайн: <span class="accent">Начало</span></h2>
+    <div class="timeline" style="margin-top: 20px;">
+      <div class="timeline-item anim anim-d2">
+        <div class="timeline-date">Ноябрь 2022</div>
+        <div class="timeline-text"><strong><a href="https://chatgpt.com" target="_blank">ChatGPT</a></strong> &mdash; AI стал доступен всем через чат. Вопрос &rarr; ответ.</div>
+      </div>
+      <div class="timeline-item anim anim-d3">
+        <div class="timeline-date">2024</div>
+        <div class="timeline-text"><strong><a href="https://bolt.new" target="_blank">Bolt</a>, <a href="https://lovable.dev" target="_blank">Lovable</a>, <a href="https://cursor.com" target="_blank">Cursor</a></strong> &mdash; описываешь словами &rarr; получаешь готовый сайт. AI встроен в редактор кода.</div>
+      </div>
+      <div class="timeline-item highlight anim anim-d4">
+        <div class="timeline-date">Февраль 2025</div>
+        <div class="timeline-text"><strong><a href="https://en.wikipedia.org/wiki/Andrej_Karpathy" target="_blank">Андрей Карпатый</a></strong> придумывает термин <span class="accent">&laquo;<a href="https://x.com/karpathy/status/1886192184808149383" target="_blank">вайб-кодинг</a>&raquo;</span>. AI научился не просто отвечать, а <strong>делать</strong>.</div>
+      </div>
+    </div>
+    <div class="explain-card anim anim-d5">
+      <h3>Агентность</h3>
+      <p>Сам видит проблему &rarr; сам принимает решение &rarr; сам выполняет. Достаточно обозначить цель.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 4: Таймлайн — Эра агентов -->
+<div class="slide" data-notes="Дальше — ускорение. Февраль 2025 — Anthropic выпускает Claude Code. Агентный инструмент: описываешь задачу — он сам читает файлы, вносит изменения, запускает тесты, исправляет ошибки. Автономно, как сотрудник. Важный нюанс: Claude Code в основном использовали через Cursor и VS Code — то есть это был инструмент для разработчиков. До «обычных людей» агенты ещё не дошли. Лето 2025 — ChatGPT Agent Mode. Агенты прямо в ChatGPT. AI планирует, использует браузер, выполняет шаги. Октябрь 2025 — OpenAI выпускает Atlas, свой браузер с AI-агентом внутри. Ты сёрфишь — а рядом агент, который видит те же сайты и может действовать за тебя. Продвинутые пользователи уже вовсю работают с Cursor и Claude Code — не просто пишут код, а выстраивают рабочие процессы: автоматизируют рутину, организуют задачи, управляют проектами. Но все это еще в очень узких, технически продвинутых кругах.">
+  <div class="slide-content">
+    <div class="anim section-label">Как мы сюда попали</div>
+    <h2 class="anim anim-d1">Таймлайн: <span class="accent">Эра агентов</span></h2>
+    <div class="timeline" style="margin-top: 20px;">
+      <div class="timeline-item anim anim-d2">
+        <div class="timeline-date">Февраль 2025</div>
+        <div class="timeline-text"><strong><a href="https://claude.ai/code" target="_blank">Claude Code</a></strong> (Anthropic) &mdash; описываешь задачу, он сам читает файлы, вносит изменения, запускает тесты. Автономно.</div>
+      </div>
+      <div class="timeline-item anim anim-d3">
+        <div class="timeline-date">Лето 2025</div>
+        <div class="timeline-text"><strong><a href="https://openai.com/index/introducing-chatgpt-agent/" target="_blank">ChatGPT Agent Mode</a></strong> &mdash; агенты прямо в <a href="https://chatgpt.com" target="_blank">ChatGPT</a>. Планирует, использует браузер, выполняет шаги.</div>
+      </div>
+      <div class="timeline-item anim anim-d4">
+        <div class="timeline-date">Октябрь 2025</div>
+        <div class="timeline-text"><strong><a href="https://openai.com/index/introducing-chatgpt-atlas/" target="_blank">Atlas</a></strong> (OpenAI) &mdash; браузер с AI-агентом внутри. Сёрфишь &mdash; агент действует за тебя.</div>
+      </div>
+    </div>
+    <div class="explain-card anim anim-d5">
+      <p>Продвинутые пользователи уже строят рабочие процессы. Но всё ещё <strong>узкий круг</strong> технически подкованных людей.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 5: Таймлайн — Стремительный рост -->
+<div class="slide" data-notes="А потом — за 25 дней выходят четыре флагманских модели: Grok от xAI — 17 ноября. Gemini 3 Pro от Google — на следующий день. Claude Opus 4.5 от Anthropic — 24 ноября. GPT-5.2 от OpenAI — 11 декабря. В конце декабря Meta покупает Manus — автономного AI-агента — за 2 миллиарда долларов. И это уже прям сигнал. Важный нюанс: Manus — это не модель, а агентная система. Параллельное событие: первый публичный общий агент от китайской команды. Это был качественный скачок. Модели стали настолько умнее и точнее, что вещи, которые раньше работали «так себе», вдруг заработали по-настоящему. Агенты перестали ошибаться на каждом втором шаге. Они стали надёжными. Они стали способны провести тебя за ручку через технические дебри. И все одновременно поняли: подождите, Claude Code может делать невероятные штуки. Не просто код писать — а управлять почтой, календарём, задачами, контентом. Целые рабочие процессы. Это как с телевидением и радио — кто-то одновременно придумал, потому что идея витала в воздухе. Так и здесь: одновременно тысячи людей начали строить свои агентные системы.">
+  <div class="slide-content">
+    <div class="anim section-label">Как мы сюда попали</div>
+    <h2 class="anim anim-d1">Таймлайн: <span class="accent">все везде и сразу</span></h2>
+    <p class="anim anim-d2 subtitle">Ноябрь &mdash; декабрь 2025: 4 флагмана за 25 дней</p>
+    <div class="grid-2" style="margin-top: 16px;">
+      <div class="card anim anim-d3">
+        <p class="small dim">17 ноября</p>
+        <p style="color:var(--text);"><strong><a href="https://grok.com" target="_blank">Grok</a></strong> <span class="dim">&mdash; xAI</span></p>
+      </div>
+      <div class="card anim anim-d3">
+        <p class="small dim">18 ноября</p>
+        <p style="color:var(--text);"><strong><a href="https://gemini.google.com" target="_blank">Gemini 3 Pro</a></strong> <span class="dim">&mdash; Google</span></p>
+      </div>
+      <div class="card anim anim-d4">
+        <p class="small dim">24 ноября</p>
+        <p style="color:var(--text);"><strong>Claude Opus 4.5</strong> <span class="dim">&mdash; Anthropic</span></p>
+      </div>
+      <div class="card anim anim-d4">
+        <p class="small dim">11 декабря</p>
+        <p style="color:var(--text);"><strong>GPT-5.2</strong> <span class="dim">&mdash; OpenAI</span></p>
+      </div>
+    </div>
+    <div class="explain-card anim anim-d5" style="margin-top: 12px;">
+      <h3>Модели стали надёжными</h3>
+      <p>Агенты перестали ошибаться на каждом шаге. Тысячи людей начали строить свои системы одновременно.</p>
+      <p class="small dim" style="margin-top:10px;"><strong>Параллельно:</strong> Meta покупает <a href="https://manus.im" target="_blank">Manus</a> за $2 млрд &mdash; это не модель, а агентная система. Отдельное событие того же периода.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 6: Таймлайн — Январь 2026 -->
+<div class="slide" data-notes="Январь 2026 — два ключевых события. 12 января — Anthropic запускает Claude Cowork. По сути, Claude Code для обычных людей. Плагины, подключения, автономная работа — в удобном интерфейсе. И революция в том числе в том, что Cowork был построен агентами. Весь код написан AI. Сама разработка — демонстрация того, что агенты уже способны создавать серьёзные продукты. В конце января начинает бум по OpenClaw, в общий доступ он был выложен в ноябре 2025. Но в январе проект резко вышел в мейнстрим и за считанные дни. За 48 часов — 34 тысячи звёзд на GitHub. Сейчас — 247 тысяч. У Linux — 180 тысяч за 30 лет. Что это такое и кто это сделал. Питер Штайнбергер, австрийский разработчик, выложил в открытый доступ свой проект — open-source AI-агента, которого ты устанавливаешь на свой компьютер и общаешься с ним через WhatsApp или Telegram. Он не просто отвечает — он реально действует: отправляет письма, управляет файлами, работает с браузером, планирует встречи. Интересно то, что Питер делал то же самое, что параллельно делали многие, включая меня — строил персональную систему с AI. Он довёл её до состояния, когда любой немного технически подкованный человек мог установить готового агента за 10 минут и начать с ним работать. Сотни тысяч людей это сделали. И это невероятно ускорило то, что уже происходило. Про OpenClaw мы еще поговорим. Я скажу вам свое мнение на этот счет, дам рекомендации на случай, если заходите установить, а также покажу вам свою систему позже и объясню, почему я не пользуюсь OpenClaw.">
+  <div class="slide-content">
+    <div class="anim section-label">Как мы сюда попали</div>
+    <h2 class="anim anim-d1">Январь 2026: <span class="accent">всё сходится</span></h2>
+    <div class="grid-2" style="margin-top: 20px;">
+      <div class="card anim anim-d2">
+        <p class="small dim">12 января</p>
+        <h3><a href="https://claude.ai/cowork" target="_blank">Claude Cowork</a></h3>
+        <p class="small" style="color:var(--text-secondary);"><a href="https://claude.ai/code" target="_blank">Claude Code</a> для обычных людей. Плагины, подключения, автономная работа &mdash; в удобном интерфейсе.</p>
+        <p class="xsmall accent" style="margin-top: 8px;">Сам Cowork был построен агентами</p>
+      </div>
+      <div class="card anim anim-d3">
+        <p class="small dim">Конец января</p>
+        <h3><a href="https://openclaw.ai" target="_blank">OpenClaw</a></h3>
+        <p class="small" style="color:var(--text-secondary);">Open-source AI-агент. Устанавливаешь на свой компьютер, общаешься через Telegram или WhatsApp.</p>
+        <p class="xsmall accent" style="margin-top: 8px;">247K звёзд на GitHub (у Linux &mdash; 180K за 30 лет)</p>
+        <p class="xsmall" style="margin-top: 4px;"><a href="https://github.com/OpenClaw/openclaw" target="_blank">GitHub ★ 247K</a></p>
+      </div>
+    </div>
+    <div class="explain-card anim anim-d4">
+      <p>То, что было экспериментом &mdash; вдруг стало мейнстримом.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 7: Ключевая мысль -->
+<div class="slide" data-notes="Скорость изменений — стремительная. Но суть простая: AI перестал быть чатом. Он стал рабочей средой. И сегодня я покажу, как это выглядит на практике — и как вы можете начать это использовать.">
+  <div class="slide-content" style="text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh;">
+    <p class="anim dim small" style="margin-bottom: 24px;">Скорость изменений &mdash; стремительная. Но суть простая:</p>
+    <div class="anim anim-d1 big-quote" style="max-width: 800px;">
+      AI перестал быть чатом.<br><span class="accent">Он стал рабочей средой.</span>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 8: Три уровня — обзор -->
+<div class="slide" data-notes="Чтобы разобраться во всём этом многообразии, я предлагаю простой фреймворк. Три уровня использования AI. Каждый следующий — мощнее.">
+  <div class="slide-content">
+    <div class="anim section-label">Фреймворк</div>
+    <h2 class="anim anim-d1">Три уровня <span class="accent">использования AI</span></h2>
+    <p class="anim anim-d2 subtitle">Каждый следующий &mdash; мощнее</p>
+    <div class="grid-3" style="margin-top: 24px;">
+      <div class="card anim anim-d3" style="text-align: center; padding: 28px 20px;">
+        <span class="level-badge level-1" style="margin-bottom: 12px;">Уровень 1</span>
+        <h3 style="margin-top: 12px;">Спросил &mdash; получил ответ</h3>
+        <p class="small dim" style="margin-top: 8px;">Чат. Вопрос &rarr; ответ.</p>
+      </div>
+      <div class="card anim anim-d4" style="text-align: center; padding: 28px 20px;">
+        <span class="level-badge level-2" style="margin-bottom: 12px;">Уровень 2</span>
+        <h3 style="margin-top: 12px;">Настроенный агент на платформе</h3>
+        <p class="small dim" style="margin-top: 8px;">Контекст + подключения + автономность</p>
+      </div>
+      <div class="card anim anim-d5" style="text-align: center; padding: 28px 20px;">
+        <span class="level-badge level-3" style="margin-bottom: 12px;">Уровень 3</span>
+        <h3 style="margin-top: 12px;">Собственная агентская система</h3>
+        <p class="small dim" style="margin-top: 8px;">Полный контроль + владение</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 9: Уровень 1 -->
+<div class="slide" data-notes="Уровень первый — так большинство людей используют AI сегодня. Открыл ChatGPT или Claude. Написал вопрос. Получил ответ. Скопировал. Закрыл. Проблема: каждый раз разговариваешь с умным незнакомцем. Он не знает, кто ты. Нет доступа к твоим инструментам. Не помнит вчерашний разговор. Как звонить каждый раз на горячую линию и объяснять заново.">
+  <div class="slide-content">
+    <div class="anim">
+      <span class="level-badge level-1">Уровень 1</span>
+    </div>
+    <h2 class="anim anim-d1" style="margin-top: 12px;">&laquo;Спросил &mdash; получил ответ&raquo;</h2>
+    <div class="anim anim-d2" style="display: flex; gap: 12px; margin: 20px 0; flex-wrap: wrap;">
+      <div class="card-gradient-blue" style="flex: 1; min-width: 160px; text-align: center; padding: 20px 16px;">
+        <p style="font-size: 1.6rem; margin-bottom: 6px;">&#128064;</p>
+        <p style="color: var(--text); font-weight: 600;">Открыл <a href="https://chatgpt.com" target="_blank">ChatGPT</a></p>
+      </div>
+      <div class="flow-arrow" style="display: flex; align-items: center; font-size: 1.3rem; color: var(--text-secondary);">&rarr;</div>
+      <div class="card-gradient-blue" style="flex: 1; min-width: 160px; text-align: center; padding: 20px 16px;">
+        <p style="font-size: 1.6rem; margin-bottom: 6px;">&#9997;&#65039;</p>
+        <p style="color: var(--text); font-weight: 600;">Написал вопрос</p>
+      </div>
+      <div class="flow-arrow" style="display: flex; align-items: center; font-size: 1.3rem; color: var(--text-secondary);">&rarr;</div>
+      <div class="card-gradient-blue" style="flex: 1; min-width: 160px; text-align: center; padding: 20px 16px;">
+        <p style="font-size: 1.6rem; margin-bottom: 6px;">&#128203;</p>
+        <p style="color: var(--text); font-weight: 600;">Получил ответ</p>
+      </div>
+      <div class="flow-arrow" style="display: flex; align-items: center; font-size: 1.3rem; color: var(--text-secondary);">&rarr;</div>
+      <div class="card-gradient-blue" style="flex: 1; min-width: 160px; text-align: center; padding: 20px 16px;">
+        <p style="font-size: 1.6rem; margin-bottom: 6px;">&#128474;</p>
+        <p style="color: var(--text); font-weight: 600;">Скопировал. Закрыл.</p>
+      </div>
+    </div>
+    <div class="card anim anim-d3" style="margin-top: 8px; background: linear-gradient(135deg, rgba(220,38,38,0.04) 0%, rgba(220,38,38,0.08) 100%); border: 1px solid rgba(220,38,38,0.12);">
+      <p class="small" style="color: var(--text-secondary); margin-bottom: 8px;">Не знает, кто ты &nbsp;&bull;&nbsp; нет доступа к инструментам &nbsp;&bull;&nbsp; не помнит вчерашний разговор</p>
+      <p class="small" style="color: var(--text-secondary);">Как звонить на горячую линию и объяснять всё заново с нуля</p>
+      <p style="color: var(--red); font-weight: 600; font-size: 1rem; margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(220,38,38,0.12);">Вывод: это инструмент, а не помощник &mdash; чтобы он помогал по-настоящему, нужно идти дальше</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 10: Уровень 2 -->
+<div class="slide" data-notes="Уровень второй — серьёзный шаг. Использование персонализированых чатов: Projects, Custom GPTs. Загружаешь документы, задаёшь контекст. Лучше, чем уровень 1, но ещё без полной автономности. Claude Cowork, ChatGPT Agent Mode, Manus, AI-браузеры вроде Atlas. Контекст — ты записываешь свои предпочтения, создаёшь проекты с документами и инструкциями, платформа сама запоминает паттерны между сессиями. Незнакомец превращается в коллегу, который тебя знает. Подключения — агент видит твой календарь, почту, Notion. Автономность — описываешь цель, агент сам разбивает на шаги и выполняет. Метафора: мощный служебный автомобиль. Много функций, едет быстро. Но маршрут определяет навигатор платформы.">
+  <div class="slide-content">
+    <div class="anim">
+      <span class="level-badge level-2">Уровень 2</span>
+    </div>
+    <h2 class="anim anim-d1" style="margin-top: 12px;">&laquo;Настроенный агент на платформе&raquo;</h2>
+    <p class="anim anim-d2 subtitle"><a href="https://claude.ai/cowork" target="_blank">Cowork</a>, <a href="https://openai.com/index/introducing-chatgpt-agent/" target="_blank">ChatGPT Agent Mode</a>, <a href="https://manus.im" target="_blank">Manus</a>, <a href="https://openai.com/index/introducing-chatgpt-atlas/" target="_blank">Atlas</a></p>
+    <div class="grid-3 anim anim-d3" style="margin-top: 20px;">
+      <div class="card" style="text-align: center;">
+        <p style="font-size: 1.8rem; margin-bottom: 8px;">&#128203;</p>
+        <h3 style="font-size: 1.1rem;">Контекст</h3>
+        <p class="small dim">Документы, предпочтения, память между сессиями</p>
+      </div>
+      <div class="card" style="text-align: center;">
+        <p style="font-size: 1.8rem; margin-bottom: 8px;">&#128279;</p>
+        <h3 style="font-size: 1.1rem;">Подключения</h3>
+        <p class="small dim">Календарь, почта, Notion, браузер</p>
+      </div>
+      <div class="card" style="text-align: center;">
+        <p style="font-size: 1.8rem; margin-bottom: 8px;">&#9881;&#65039;</p>
+        <h3 style="font-size: 1.1rem;">Автономность</h3>
+        <p class="small dim">Описываешь цель &mdash; агент сам выполняет</p>
+      </div>
+    </div>
+    <div class="explain-card anim anim-d4">
+      <p><strong>Мощный служебный автомобиль.</strong> Много функций, едет быстро. Но маршрут определяет навигатор платформы.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 11: Уровень 3 -->
+<div class="slide" data-notes="Уровень третий — ты строишь и владеешь системой. Claude Code, подключения через MCP, собственные скилы, суб-агенты. Полный контроль: какая модель, какие подключения, какие правила. Собственная память. Версионирование через Git. Работает где угодно: редактор, терминал, Telegram с телефона. Метафора: ты сам собираешь машину. Двигатель, руль, колёса — всё такое, как тебе надо под твои задачи.">
+  <div class="slide-content">
+    <div class="anim">
+      <span class="level-badge level-3">Уровень 3</span>
+    </div>
+    <h2 class="anim anim-d1" style="margin-top: 12px;">&laquo;Собственная агентская система&raquo;</h2>
+    <p class="anim anim-d2 subtitle"><a href="https://claude.ai/code" target="_blank">Claude Code</a> + MCP + скилы + суб-агенты</p>
+    <div class="grid-2 anim anim-d3" style="margin-top: 20px;">
+      <div class="card">
+        <h3 style="font-size: 1.1rem;">Полный контроль</h3>
+        <ul style="list-style: none; margin-top: 8px;">
+          <li style="margin-bottom: 6px;"><span class="accent">&bull;</span> Какая модель</li>
+          <li style="margin-bottom: 6px;"><span class="accent">&bull;</span> Какие подключения</li>
+          <li style="margin-bottom: 6px;"><span class="accent">&bull;</span> Какие правила</li>
+          <li><span class="accent">&bull;</span> Собственная память</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="font-size: 1.1rem;">Работает где угодно</h3>
+        <ul style="list-style: none; margin-top: 8px;">
+          <li style="margin-bottom: 6px;"><span class="accent">&bull;</span> Редактор (VS Code)</li>
+          <li style="margin-bottom: 6px;"><span class="accent">&bull;</span> Терминал</li>
+          <li style="margin-bottom: 6px;"><span class="accent">&bull;</span> Telegram с телефона</li>
+          <li><span class="accent">&bull;</span> Git-версионирование</li>
+        </ul>
+      </div>
+    </div>
+    <div class="explain-card anim anim-d4">
+      <p><strong>Ты сам собираешь машину.</strong> Двигатель, руль, колёса &mdash; всё такое, как тебе надо под твои задачи.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 12: Ключевой сдвиг между уровнями -->
+<div class="slide" data-notes="В чём разница между уровнями? От первого ко второму: добавляешь контекст и подключения. Платформа делает это за тебя. От второго к третьему: добавляешь владение, контроль и гибкость. Ты сам решаешь, как всё устроено, и можешь адаптировать систему максимально под себя — под свои процессы, привычки, инструменты. Это не просто настройка — это архитектура. Граница между 2 и 3 — не техническая. MCP и базовая память есть и там, и там. Разница — в степени контроля и гибкости. На уровне 2 ты пользователь. На уровне 3 — архитектор своей операционной системы.">
+  <div class="slide-content">
+    <div class="anim section-label">Фреймворк</div>
+    <h2 class="anim anim-d1">Ключевой сдвиг <span class="accent">между уровнями</span></h2>
+    <div style="margin-top: 28px;">
+      <div class="flow anim anim-d2">
+        <div class="flow-step"><span class="level-badge level-1" style="font-size: 1.1rem; padding: 8px 18px;">1</span></div>
+        <div class="flow-arrow" style="font-size: 1.5rem;">&rarr;</div>
+        <div class="flow-step active" style="flex: 1; text-align: center;">
+          <span class="accent" style="font-weight: 600;">+ Контекст</span> &nbsp;&amp;&nbsp; <span class="accent" style="font-weight: 600;">Подключения</span>
+          <br><span class="small dim">Платформа делает это за тебя</span>
+        </div>
+        <div class="flow-arrow" style="font-size: 1.5rem;">&rarr;</div>
+        <div class="flow-step"><span class="level-badge level-2" style="font-size: 1.1rem; padding: 8px 18px;">2</span></div>
+      </div>
+      <div class="flow anim anim-d3" style="margin-top: 16px;">
+        <div class="flow-step"><span class="level-badge level-2" style="font-size: 1.1rem; padding: 8px 18px;">2</span></div>
+        <div class="flow-arrow" style="font-size: 1.5rem;">&rarr;</div>
+        <div class="flow-step active" style="flex: 1; text-align: center;">
+          <span class="accent" style="font-weight: 600;">+ Владение</span>, <span class="accent" style="font-weight: 600;">Контроль</span> &amp; <span class="accent" style="font-weight: 600;">Гибкость</span>
+          <br><span class="small dim">Ты сам решаешь, как всё устроено</span>
+        </div>
+        <div class="flow-arrow" style="font-size: 1.5rem;">&rarr;</div>
+        <div class="flow-step"><span class="level-badge level-3" style="font-size: 1.1rem; padding: 8px 18px; background: #1d1d1f; color: #ffffff; border: none;">3</span></div>
+      </div>
+    </div>
+    <div class="explain-card anim anim-d4" style="margin-top: 28px;">
+      <p>Разница между 2 и 3 &mdash; в степени контроля. На уровне 2 ты <span class="accent">пользователь</span>. На уровне 3 &mdash; <span class="accent">архитектор</span>.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 13: Одна задача — три уровня (Управление расписанием) -->
+<div class="slide" data-notes="Чтобы стало конкретнее — одна задача на каждом уровне. Управление расписанием. Уровень 1: «ChatGPT, что мне приоритизировать?» Общий совет незнакомца. Уровень 2: Cowork подключён к календарю и к таск-трекеру. Видит встречи, дедлайны, задачи и предлагает на основе данных. Уровень 3: Агент утром сам присылает брифинг в Telegram: «3 встречи, 2 срочных письма, дедлайн завтра. Предлагаю перенести встречу с Иваном.» Это проиходит без запроса, он присылает и предлагает сам.">
+  <div class="slide-content">
+    <div class="anim section-label">Одна задача &mdash; три уровня</div>
+    <h2 class="anim anim-d1">Управление <span class="accent">расписанием</span></h2>
+    <div class="grid-3" style="margin-top: 24px;">
+      <div class="card anim anim-d2">
+        <span class="level-badge level-1" style="margin-bottom: 10px;">Уровень 1</span>
+        <p style="margin-top: 10px; color: var(--text); font-size: 1rem;">&laquo;<a href="https://chatgpt.com" target="_blank">ChatGPT</a>, что мне приоритизировать?&raquo;</p>
+        <p class="small dim" style="margin-top: 8px;">Общий совет незнакомца</p>
+      </div>
+      <div class="card anim anim-d3">
+        <span class="level-badge level-2" style="margin-bottom: 10px;">Уровень 2</span>
+        <p style="margin-top: 10px; color: var(--text); font-size: 1rem;">Cowork видит календарь и задачи. Предлагает на основе данных.</p>
+        <p class="small dim" style="margin-top: 8px;">Подключён к инструментам</p>
+      </div>
+      <div class="card anim anim-d4" style="border-color: var(--accent-border); background: var(--accent-soft);">
+        <span class="level-badge level-3" style="margin-bottom: 10px; background: #1d1d1f; color: #ffffff; border: none;">Уровень 3</span>
+        <p style="margin-top: 10px; color: var(--text); font-size: 1rem;">Утром сам присылает в Telegram: &laquo;3 встречи, 2 срочных письма. Предлагаю перенести...&raquo;</p>
+        <p class="small accent" style="margin-top: 8px;">Без запроса &mdash; сам</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 14: Одна задача — три уровня (Обработка встречи) -->
+<div class="slide" data-notes="Обработка встречи. Уровень 1: Скопировал транскрипт. «Сделай саммари.» Плоское резюме. Уровень 2: Cowork обрабатывает с контекстом проекта — хорошее резюме, может подготовить презентацию. Уровень 3: Агент сам определяет окончание встречи. Транскрипт → саммари → задачи → папка проекта → Notion. Без единого запроса. Покажу в демо.">
+  <div class="slide-content">
+    <div class="anim section-label">Одна задача &mdash; три уровня</div>
+    <h2 class="anim anim-d1">Обработка <span class="accent">встречи</span></h2>
+    <div class="grid-3" style="margin-top: 24px;">
+      <div class="card anim anim-d2">
+        <span class="level-badge level-1" style="margin-bottom: 10px;">Уровень 1</span>
+        <p style="margin-top: 10px; color: var(--text); font-size: 1rem;">Скопировал транскрипт. &laquo;Сделай саммари.&raquo;</p>
+        <p class="small dim" style="margin-top: 8px;">Плоское резюме</p>
+      </div>
+      <div class="card anim anim-d3">
+        <span class="level-badge level-2" style="margin-bottom: 10px;">Уровень 2</span>
+        <p style="margin-top: 10px; color: var(--text); font-size: 1rem;">Cowork обрабатывает с контекстом проекта. Хорошее резюме.</p>
+        <p class="small dim" style="margin-top: 8px;">Знает проект</p>
+      </div>
+      <div class="card anim anim-d4" style="border-color: var(--accent-border); background: var(--accent-soft);">
+        <span class="level-badge level-3" style="margin-bottom: 10px; background: #1d1d1f; color: #ffffff; border: none;">Уровень 3</span>
+        <div style="margin-top: 10px;">
+          <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;">
+            <div style="flex: 1; min-width: 60px; background: rgba(255,255,255,0.7); border-radius: 12px; padding: 14px 10px; text-align: center; min-height: 72px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+              <p style="font-size: 1.3rem; margin-bottom: 6px;">&#127909;</p>
+              <p style="font-size: 0.8rem; font-weight: 600; color: var(--text); line-height: 1.3;">Транскрипт</p>
+            </div>
+            <div style="flex: 1; min-width: 60px; background: rgba(255,255,255,0.7); border-radius: 12px; padding: 12px 8px; text-align: center; min-height: 72px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+              <p style="font-size: 1.3rem; margin-bottom: 4px;">&#128221;</p>
+              <p style="font-size: 0.8rem; font-weight: 600; color: var(--text);">Саммари</p>
+            </div>
+            <div style="flex: 1; min-width: 60px; background: rgba(255,255,255,0.7); border-radius: 12px; padding: 12px 8px; text-align: center; min-height: 72px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+              <p style="font-size: 1.3rem; margin-bottom: 4px;">&#9989;</p>
+              <p style="font-size: 0.8rem; font-weight: 600; color: var(--text);">Задачи</p>
+            </div>
+            <div style="flex: 1; min-width: 60px; background: rgba(255,255,255,0.7); border-radius: 12px; padding: 12px 8px; text-align: center; min-height: 72px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+              <p style="font-size: 1.3rem; margin-bottom: 4px;">&#128203;</p>
+              <p style="font-size: 0.8rem; font-weight: 600; color: var(--text);">Notion</p>
+            </div>
+          </div>
+        </div>
+        <p class="small accent" style="margin-top: 4px;">Без единого запроса</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 15: Одна задача — три уровня (Создание контента) -->
+<div class="slide" data-notes="Создание контента. Уровень 1: «Напиши пост.» Выдает рандом. Уровень 2: Project со стайл-гайдом. Уже в твоём стиле. Уровень 3: Агент знает канал, видит аналитику, сделал анализ конкурентов и трендов, имеет доступ к базе идей, знает темы, которыми ты интересуешься, знает контекст твоего жизни и работы, предлагает темы, пишет драфт в твоём тон оф войс. Ты редактируешь и публикуешь.">
+  <div class="slide-content">
+    <div class="anim section-label">Одна задача &mdash; три уровня</div>
+    <h2 class="anim anim-d1">Создание <span class="accent">контента</span></h2>
+    <div class="grid-3" style="margin-top: 24px;">
+      <div class="card anim anim-d2">
+        <span class="level-badge level-1" style="margin-bottom: 10px;">Уровень 1</span>
+        <p style="margin-top: 10px; color: var(--text); font-size: 1rem;">&laquo;Напиши пост.&raquo;</p>
+        <p class="small dim" style="margin-top: 8px;">Выдаёт рандом</p>
+      </div>
+      <div class="card anim anim-d3">
+        <span class="level-badge level-2" style="margin-bottom: 10px;">Уровень 2</span>
+        <p style="margin-top: 10px; color: var(--text); font-size: 1rem;">Project со стайл-гайдом. Уже в твоём стиле.</p>
+        <p class="small dim" style="margin-top: 8px;">Знает формат</p>
+      </div>
+      <div class="card anim anim-d4" style="border-color: var(--accent-border); background: var(--accent-soft);">
+        <span class="level-badge level-3" style="margin-bottom: 10px; background: #1d1d1f; color: #ffffff; border: none;">Уровень 3</span>
+        <ul style="list-style: none; margin-top: 10px;">
+          <li style="margin-bottom: 4px; font-size: 1rem; color: var(--text);"><span class="accent">&bull;</span> Знает канал и аналитику</li>
+          <li style="margin-bottom: 4px; font-size: 1rem; color: var(--text);"><span class="accent">&bull;</span> Анализ трендов и конкурентов</li>
+          <li style="margin-bottom: 4px; font-size: 1rem; color: var(--text);"><span class="accent">&bull;</span> База идей + контекст жизни</li>
+          <li style="font-size: 1rem; color: var(--text);"><span class="accent">&bull;</span> Предлагает тему, пишет драфт</li>
+        </ul>
+        <p style="font-size: 1rem;" class="accent" style="margin-top: 8px;">Ты только редактируешь</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================================
+<!-- BLOCK 1.4: SLIDES 17-26                    -->
+<!-- ==========================================
+
+<!-- SLIDE 17: Заголовок блока "Парад use cases" -->
+<div class="slide slide-dark" data-notes="Итак, вы видели три уровня на примере трёх задач. Но на самом деле сценариев, где агенты уже работают — десятки. Давайте пройдёмся по самым интересным. Каждый раз я покажу: как вы, скорее всего, делаете это сейчас — и как это может выглядеть с агентом.">
+  <div class="slide-content" style="text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:60vh;">
+    <div class="anim section-label">Блок 1.4</div>
+    <h1 class="anim anim-d1 section-title">Парад use cases</h1>
+    <p class="anim anim-d2 section-subtitle">Сейчас &rarr; С агентом</p>
+  </div>
+</div>
+
+
+<!-- SLIDE 19: Исследование и аналитика -->
+<div class="slide" data-notes="Исследование. Сейчас: гуглишь, открываешь 15 вкладок, читаешь статьи, пытаешься собрать картину. Два часа — и ты ещё не уверен, что ничего не пропустил. С агентом: говоришь &quot;исследуй тему X, дай отчёт с источниками&quot;. Через 30 минут — структурированный документ с ключевыми тезисами и ссылками, документ исследования сохранен в нужной папке, чтобы использовать его для дальнейшей работы над проектом. Это уже работает на уровне 2: Deep Research, Perplexity — они это умеют сегодня.">
+  <div class="slide-content">
+    <div class="anim" style="display:flex; align-items:center; gap:12px; margin-bottom:20px;">
+      <h2>Исследование</h2>
+      <span class="level-badge level-2">Уровень 2</span>
+    </div>
+    <div class="usecase-grid anim anim-d1">
+      <div class="usecase-before">
+        <div class="usecase-label" style="color:var(--text-tertiary);">Сейчас</div>
+        <p style="font-size:2rem; font-weight:500; color:var(--text); margin-bottom:6px;">15 вкладок</p>
+        <p style="font-size:1rem; color:var(--text-secondary); margin-bottom:10px;">Гуглишь, читаешь статьи, пытаешься собрать картину</p>
+        <p style="font-size:1.3rem; font-weight:500; color:var(--text);">~2 часа</p>
+        <p class="small dim">и не уверен, что ничего не пропустил</p>
+      </div>
+      <div class="usecase-after">
+        <div class="usecase-label" style="color:var(--accent);">С агентом</div>
+        <p style="font-size:1rem; color:var(--text); margin-bottom:10px;">&laquo;Исследуй тему X, дай отчёт с источниками&raquo;</p>
+        <ul style="list-style:none; font-size:0.95rem; color:var(--text-secondary);">
+          <li style="margin-bottom:4px;">&#10003; Структурированный документ</li>
+          <li style="margin-bottom:4px;">&#10003; Ключевые тезисы и ссылки</li>
+          <li>&#10003; Сохранено в папку проекта</li>
+        </ul>
+        <p style="font-size:1.3rem; font-weight:500; color:var(--accent); margin-top:14px;">30 минут</p>
+        <p class="xsmall dim" style="margin-top:6px;">Deep Research, Perplexity — работает уже сегодня</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 20: Сортировка почты -->
+<div class="slide" data-notes="Почта. Сейчас: читаешь всё подряд. Рекламу, уведомления, важные письма — всё вперемешку. Тратишь время на то, чтобы найти то, что реально требует внимания. С агентом: он сортирует входящие. Срочное — наверх с резюме. Информационное — в дайджест. Спам — убрано. Ты читаешь только то, что важно.">
+  <div class="slide-content">
+    <div class="anim" style="display:flex; align-items:center; gap:12px; margin-bottom:20px;">
+      <h2>Сортировка почты</h2>
+      <span class="level-badge level-3">Уровень 3</span>
+    </div>
+    <div class="usecase-grid anim anim-d1">
+      <div class="usecase-before">
+        <div class="usecase-label" style="color:var(--text-tertiary);">Сейчас</div>
+        <p style="font-size:1.05rem; color:var(--text-secondary); margin-bottom:12px;">Читаешь всё подряд:</p>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <div class="task-example" style="border-left-color:var(--red); opacity:0.6;">Реклама и промо</div>
+          <div class="task-example" style="border-left-color:var(--text-tertiary); opacity:0.6;">Уведомления сервисов</div>
+          <div class="task-example" style="border-left-color:var(--accent);">Важное письмо от клиента</div>
+          <div class="task-example" style="border-left-color:var(--text-tertiary); opacity:0.6;">Рассылки и дайджесты</div>
+        </div>
+        <p class="small dim" style="margin-top:10px;">Всё вперемешку, важное теряется</p>
+      </div>
+      <div class="usecase-after">
+        <div class="usecase-label" style="color:var(--accent);">С агентом</div>
+        <p style="font-size:1.05rem; color:var(--text); margin-bottom:12px;">Автоматическая сортировка:</p>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <div class="task-example" style="border-left-color:var(--red);"><strong>Срочное</strong> &mdash; наверх с резюме</div>
+          <div class="task-example" style="border-left-color:var(--blue);"><strong>Информационное</strong> &mdash; в дайджест</div>
+          <div class="task-example" style="border-left-color:var(--text-tertiary);"><strong>Спам</strong> &mdash; убрано</div>
+        </div>
+        <p style="font-size:1rem; font-weight:500; color:var(--accent); margin-top:14px;">Читаешь только то, что важно</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 21: Персональная CRM -->
+<div class="slide" data-notes="Контакты и нетворкинг. Сейчас: познакомился с кем-то на мероприятии, обменялись контактами. Через месяц — забыл, о чём говорили. Через полгода — забыл, кто это. С агентом: автоматически собирает контекст из почты, LinkedIn, контактов и календаря. &quot;Последний раз общались 3 месяца назад, обсуждали проект Y, он обещал прислать документ.&quot; Персональная CRM, которая заполняется сама.">
+  <div class="slide-content">
+    <div class="anim" style="display:flex; align-items:center; gap:12px; margin-bottom:20px;">
+      <h2>Персональная CRM</h2>
+      <span class="level-badge level-3">Уровень 3</span>
+    </div>
+    <div class="usecase-grid anim anim-d1">
+      <div class="usecase-before">
+        <div class="usecase-label" style="color:var(--text-tertiary);">Сейчас</div>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div class="card" style="padding:14px 18px; margin-bottom:0;">
+            <p class="small" style="color:var(--text);">Познакомился на мероприятии</p>
+            <p class="xsmall dim">Обменялись контактами</p>
+          </div>
+          <div class="card" style="padding:14px 18px; margin-bottom:0; opacity:0.7;">
+            <p class="small" style="color:var(--text);">Через месяц</p>
+            <p class="xsmall dim">Забыл, о чём говорили</p>
+          </div>
+          <div class="card" style="padding:14px 18px; margin-bottom:0; opacity:0.4;">
+            <p class="small" style="color:var(--text);">Через полгода</p>
+            <p class="xsmall dim">Забыл, кто это</p>
+          </div>
+        </div>
+      </div>
+      <div class="usecase-after">
+        <div class="usecase-label" style="color:var(--accent);">С агентом</div>
+        <p style="font-size:1rem; color:var(--text); margin-bottom:12px;">Автоматический контекст из:</p>
+        <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px;">
+          <span class="tag tag-blue">Почта</span>
+          <span class="tag tag-blue">LinkedIn</span>
+          <span class="tag tag-blue">Контакты</span>
+          <span class="tag tag-blue">Календарь</span>
+        </div>
+        <div class="explain-card" style="margin-top:0;">
+          <p class="small">&laquo;Последний раз общались 3 мес. назад, обсуждали проект Y, он обещал прислать документ.&raquo;</p>
+        </div>
+        <p class="small" style="color:var(--accent); margin-top:10px; font-weight:500;">CRM, которая заполняется сама</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 22: Контент-пайплайн -->
+<div class="slide" data-notes="Создание контента. Я об этом уже говорила на примере уровней, но тут покажу шире. Сейчас: сидишь, думаешь, о чём написать. Потом пишешь с нуля. Потом редактируешь. Это может занять часы. С агентом: у него есть твой стайл-гайд, база идей, доступ к аналитике канала, он знает тренды в твоей теме. Он предлагает: &quot;Вот три темы, которые сейчас актуальны для твоей аудитории.&quot; Пишет драфт. Ты правишь — и публикуешь сама или публикует он. Время: с часов до минут. Можно подключить создание визуала для каруселей и даже верстку видео.">
+  <div class="slide-content">
+    <div class="anim" style="display:flex; align-items:center; gap:12px; margin-bottom:20px;">
+      <h2>Контент-пайплайн</h2>
+      <span class="level-badge level-2">Уровень 2</span>
+    </div>
+    <div class="usecase-grid anim anim-d1">
+      <div class="usecase-before">
+        <div class="usecase-label" style="color:var(--text-tertiary);">Сейчас</div>
+        <ol style="list-style:none; counter-reset:step; font-size:0.95rem; color:var(--text-secondary);">
+          <li style="display:flex; gap:10px; margin-bottom:8px;"><span style="color:var(--text-tertiary); font-weight:600; min-width:16px;">1.</span> Думаешь, о чём написать</li>
+          <li style="display:flex; gap:10px; margin-bottom:8px;"><span style="color:var(--text-tertiary); font-weight:600; min-width:16px;">2.</span> Пишешь с нуля</li>
+          <li style="display:flex; gap:10px; margin-bottom:8px;"><span style="color:var(--text-tertiary); font-weight:600; min-width:16px;">3.</span> Редактируешь</li>
+          <li style="display:flex; gap:10px;"><span style="color:var(--text-tertiary); font-weight:600; min-width:16px;">4.</span> Создаёшь визуал</li>
+        </ol>
+        <p style="font-size:1.3rem; font-weight:500; color:var(--text); margin-top:14px;">Часы</p>
+      </div>
+      <div class="usecase-after">
+        <div class="usecase-label" style="color:var(--accent);">С агентом</div>
+        <p style="font-size:0.95rem; color:var(--text); margin-bottom:10px;">У агента есть:</p>
+        <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;">
+          <span class="tag tag-orange">Стайл-гайд</span>
+          <span class="tag tag-orange">База идей</span>
+          <span class="tag tag-orange">Аналитика</span>
+          <span class="tag tag-orange">Тренды</span>
+        </div>
+        <ol style="list-style:none; counter-reset:step; font-size:0.95rem; color:var(--text-secondary);">
+          <li style="display:flex; gap:10px; margin-bottom:6px;"><span style="color:var(--accent); font-weight:600; min-width:16px;">1.</span> Предлагает актуальные темы</li>
+          <li style="display:flex; gap:10px; margin-bottom:6px;"><span style="color:var(--accent); font-weight:600; min-width:16px;">2.</span> Пишет драфт</li>
+          <li style="display:flex; gap:10px;"><span style="color:var(--accent); font-weight:600; min-width:16px;">3.</span> Ты правишь &rarr; публикация</li>
+        </ol>
+        <p style="font-size:1.3rem; font-weight:500; color:var(--accent); margin-top:14px;">Минуты</p>
+        <p class="xsmall dim" style="margin-top:4px;">+ визуал для каруселей, верстка видео</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 23: Прототипирование -->
+<div class="slide" data-notes="Прототипирование. Сейчас: у тебя есть идея для приложения или лендинга. Ты ищешь разработчика, объясняешь, ждёшь. Недели, иногда месяцы. С агентом (вайб-кодинг): описываешь словами, что хочешь. Подключаешь инструменты и через часы у тебя рабочий прототип. Не макет, а работающий вебсайт. Это уровень 2, и это доступно уже сейчас.">
+  <div class="slide-content">
+    <div class="anim" style="display:flex; align-items:center; gap:12px; margin-bottom:20px;">
+      <h2>Прототипирование</h2>
+      <span class="level-badge level-2">Уровень 2</span>
+    </div>
+    <div class="usecase-grid anim anim-d1">
+      <div class="usecase-before">
+        <div class="usecase-label" style="color:var(--text-tertiary);">Сейчас</div>
+        <p style="font-size:1.05rem; color:var(--text-secondary); margin-bottom:14px;">Идея для приложения или лендинга:</p>
+        <div class="flow" style="flex-direction:column; align-items:flex-start; gap:10px;">
+          <div class="flow-step" style="width:100%; text-align:left;">Ищешь разработчика</div>
+          <div style="color:var(--text-tertiary); font-size:1rem; padding-left:18px;">&darr;</div>
+          <div class="flow-step" style="width:100%; text-align:left;">Объясняешь задачу</div>
+          <div style="color:var(--text-tertiary); font-size:1rem; padding-left:18px;">&darr;</div>
+          <div class="flow-step" style="width:100%; text-align:left;">Ждёшь</div>
+        </div>
+        <p style="font-size:1.3rem; font-weight:500; color:var(--text); margin-top:14px;">Недели &mdash; месяцы</p>
+      </div>
+      <div class="usecase-after">
+        <div class="usecase-label" style="color:var(--accent);">С агентом (<a href="https://x.com/karpathy/status/1886192184808149383" target="_blank">вайб-кодинг</a>)</div>
+        <p style="font-size:1.05rem; color:var(--text); margin-bottom:14px;">Описываешь словами, что хочешь:</p>
+        <div class="flow" style="flex-direction:column; align-items:flex-start; gap:10px;">
+          <div class="flow-step active" style="width:100%; text-align:left;">Описание на словах</div>
+          <div style="color:var(--accent); font-size:1rem; padding-left:18px;">&darr;</div>
+          <div class="flow-step active" style="width:100%; text-align:left;">Рабочий прототип</div>
+        </div>
+        <p style="font-size:1.3rem; font-weight:500; color:var(--accent); margin-top:14px;">Часы</p>
+        <p class="small" style="color:var(--text-secondary); margin-top:6px;">Не макет &mdash; работающий вебсайт</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 24: Дайджест новостей и YouTube -->
+<div class="slide" data-notes="Информационный поток. Сейчас: подписан на 50 каналов, 20 рассылок, 10 YouTube-каналов. Физически невозможно всё отсмотреть. Пропускаешь важное, тонешь в неважном. С агентом: он мониторит твои источники. YouTube — забирает транскрипты новых видео, выдаёт ключевые тезисы за 30 секунд. Новости — собирает из 100+ источников, ранжирует по твоим интересам, доставляет дайджест. Ты читаешь 5 минут вместо часа.">
+  <div class="slide-content">
+    <div class="anim" style="display:flex; align-items:center; gap:12px; margin-bottom:20px;">
+      <h2>Дайджест новостей</h2>
+      <span class="level-badge level-3">Уровень 3</span>
+    </div>
+    <div class="usecase-grid anim anim-d1">
+      <div class="usecase-before">
+        <div class="usecase-label" style="color:var(--text-tertiary);">Сейчас</div>
+        <div class="speed-box" style="flex-direction:column; gap:8px; margin:0;">
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 16px; background:var(--bg-card); border-radius:10px;">
+            <span class="small" style="color:var(--text);">Каналы</span>
+            <span style="font-size:1.3rem; font-weight:600; color:var(--text);">50+</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 16px; background:var(--bg-card); border-radius:10px;">
+            <span class="small" style="color:var(--text);">Рассылки</span>
+            <span style="font-size:1.3rem; font-weight:600; color:var(--text);">20+</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 16px; background:var(--bg-card); border-radius:10px;">
+            <span class="small" style="color:var(--text);">YouTube</span>
+            <span style="font-size:1.3rem; font-weight:600; color:var(--text);">10+</span>
+          </div>
+        </div>
+        <p class="small dim" style="margin-top:10px;">Невозможно всё отсмотреть</p>
+      </div>
+      <div class="usecase-after">
+        <div class="usecase-label" style="color:var(--accent);">С агентом</div>
+        <ul style="list-style:none; font-size:0.95rem; color:var(--text-secondary);">
+          <li style="margin-bottom:8px;">&#10003; YouTube &mdash; транскрипты видео, ключевые тезисы за 30 сек</li>
+          <li style="margin-bottom:8px;">&#10003; Новости &mdash; 100+ источников, ранжирование по интересам</li>
+          <li>&#10003; Доставка персонального дайджеста</li>
+        </ul>
+        <div style="display:flex; align-items:baseline; gap:10px; margin-top:16px;">
+          <span style="font-size:1.8rem; font-weight:500; color:var(--accent);">5 мин</span>
+          <span class="small dim">вместо часа</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 25: Обработка встречи (flow diagram) -->
+<div class="slide" data-notes="Обработка встречи — я об этом уже говорила, но давайте покажу цепочку целиком, потому что это один из самых впечатляющих кейсов. Встреча заканчивается → агент автоматически забирает транскрипт → делает саммари с ключевыми решениями → извлекает задачи → сохраняет всё в папку проекта → создаёт задачи в Notion → может даже подготовить презентацию по итогам. Всё без единого запроса. Это уровень 3. Это работает у меня. И это реально экономит час-два после каждой встречи.">
+  <div class="slide-content" style="text-align:center;">
+    <div class="anim" style="display:flex; align-items:center; justify-content:center; gap:12px; margin-bottom:24px;">
+      <h2>Обработка встречи</h2>
+      <span class="level-badge level-3">Уровень 3</span>
+    </div>
+    <div class="flow anim anim-d1" style="justify-content:center; margin-bottom:20px;">
+      <div class="flow-step active">Встреча</div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step">Транскрипт</div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step">Саммари</div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step">Задачи</div>
+    </div>
+    <div class="flow anim anim-d2" style="justify-content:center; margin-bottom:28px;">
+      <div class="flow-step">Папка проекта</div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step">Notion</div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step">Презентация</div>
+    </div>
+    <div class="anim anim-d3 explain-card" style="text-align:left; max-width:700px; margin:0 auto;">
+      <h3>Всё автоматически</h3>
+      <p>Без единого запроса. Экономия <strong>1&ndash;2 часа</strong> после каждой встречи.</p>
+    </div>
+  </div>
+</div>
+
+
+<!-- ==========================================
+<!-- BLOCK 2: SLIDES 27-48                      -->
+<!-- ==========================================
+
+<!-- ========================================== -->
+<!-- BLOCK 2: SLIDES 27-48                      -->
+<!-- Anatomy + Demo + Recommendations + OpenClaw -->
+<!-- ========================================== -->
+
+<!-- SLIDE 27: Block title -->
+<div class="slide slide-dark" data-notes="Добро пожаловать обратно! Надеюсь, кофе готов — потому что сейчас будет самое интересное. В первом блоке я показала ЧТО возможно. Теперь разберём — КАК это устроено внутри. А потом — покажу вживую.">
+  <div class="slide-content" style="text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:70vh;">
+    <div class="anim section-label">Блок 2</div>
+    <div class="anim anim-d1 section-title">Как это устроено</div>
+    <p class="anim anim-d2 section-subtitle">Анатомия агента &middot; Демо &middot; Рекомендации</p>
+  </div>
+</div>
+
+<!-- SLIDE 28: Anatomy — human analogy -->
+<div class="slide" data-notes="Чтобы понять, как устроен агент, давайте представим его как… человека. Потому что аналогия идеальная. У каждого агента есть набор компонентов. Я покажу каждый — и проведу параллель с человеком.">
+  <div class="slide-content">
+    <div class="anim section-label">Анатомия агента</div>
+    <h2 class="anim anim-d1">Агент = <span class="accent">цифровой человек</span></h2>
+    <p class="anim anim-d2" style="margin-bottom:24px;">7 компонентов — как у живого сотрудника</p>
+    <div class="agent-body anim anim-d3">
+      <div class="agent-figure">
+        <div class="agent-icon">&#129302;</div>
+        <p class="xsmall dim" style="margin-top:8px;">AI-агент</p>
+      </div>
+      <div class="agent-parts">
+        <div class="agent-part"><span class="agent-part-emoji">&#129504;</span><div><div class="agent-part-label">Мозг</div><div class="agent-part-desc">LLM-модель &mdash; интеллект</div></div></div>
+        <div class="agent-part"><span class="agent-part-emoji">&#128100;</span><div><div class="agent-part-label">Идентичность</div><div class="agent-part-desc">Имя, характер, тон</div></div></div>
+        <div class="agent-part"><span class="agent-part-emoji">&#9878;&#65039;</span><div><div class="agent-part-label">Ценности</div><div class="agent-part-desc">Правила и границы</div></div></div>
+        <div class="agent-part"><span class="agent-part-emoji">&#128218;</span><div><div class="agent-part-label">Память</div><div class="agent-part-desc">Контекст и опыт</div></div></div>
+        <div class="agent-part"><span class="agent-part-emoji">&#128268;</span><div><div class="agent-part-label">Коннекторы</div><div class="agent-part-desc">Подключения к инструментам</div></div></div>
+        <div class="agent-part"><span class="agent-part-emoji">&#9889;</span><div><div class="agent-part-label">Скилы</div><div class="agent-part-desc">Профессиональные навыки</div></div></div>
+        <div class="agent-part"><span class="agent-part-emoji">&#128197;</span><div><div class="agent-part-label">Обязанности</div><div class="agent-part-desc">Автоматизация по расписанию</div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 29: Brain (LLM) -->
+<div class="slide" data-notes="Мозг — это модель. Claude, GPT — это интеллект агента. Его способность думать, анализировать, понимать. У человека это образование и кругозор. Модели бывают разные: мощные, как Opus — глубокие, вдумчивые. Быстрые, как Haiku — для простых задач. Как люди: кто-то стратег, кто-то исполнитель. Можно подбирать модель под задачу.">
+  <div class="slide-content">
+    <div class="anim section-label">Компонент 1</div>
+    <h2 class="anim anim-d1" style="display:flex; align-items:center; gap:16px;"><span style="font-size:3rem;">&#129504;</span> Мозг <span class="dim" style="font-size:1.4rem; font-weight:400;">&mdash; LLM-модель</span></h2>
+    <p class="anim anim-d2" style="margin-bottom:24px;">У человека: образование и кругозор</p>
+    <div class="grid-2 anim anim-d3">
+      <div class="card" style="text-align:center;">
+        <h3 style="color:var(--accent);">Opus</h3>
+        <p class="small">Глубокий, вдумчивый</p>
+        <p class="xsmall dim" style="margin-top:4px;">Стратег</p>
+      </div>
+      <div class="card" style="text-align:center;">
+        <h3 style="color:var(--blue);">Haiku</h3>
+        <p class="small">Быстрый, дешёвый</p>
+        <p class="xsmall dim" style="margin-top:4px;">Исполнитель</p>
+      </div>
+    </div>
+    <div class="explain-card anim anim-d4">
+      <h3>Ключевая идея</h3>
+      <p>Можно подбирать модель под задачу &mdash; как подбираете специалиста под проект</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 30: Identity + Values -->
+<div class="slide" data-notes="Идентичность — кто он. Имя, характер, тон общения. Моего агента зовут Кай. Он спокойный, говорит по-русски, обращается ко мне на «ты». У человека это личность — как тебя воспринимают другие. Ценности и границы — правила поведения. Что агент может делать свободно, о чём должен спросить, что запрещено. Например: «Читай любые файлы — свободно. Удалять — спроси. Пароли — никогда не показывай.» У человека это воспитание, мораль, чувство границ. Это важно: без правил агент может наделать лишнего. С правилами — он предсказуем и безопасен.">
+  <div class="slide-content">
+    <div class="anim section-label">Компоненты 2 и 3</div>
+    <div class="grid-2" style="gap:24px;">
+      <div class="anim anim-d1">
+        <h2 style="display:flex; align-items:center; gap:12px;"><span style="font-size:2.4rem;">&#128100;</span> Идентичность</h2>
+        <p style="margin-bottom:16px;">У человека: личность</p>
+        <div class="card">
+          <p class="small" style="color:var(--text);"><strong>Кай</strong> &mdash; спокойный, дружелюбный</p>
+          <p class="small">Говорит по-русски, обращается на &laquo;ты&raquo;</p>
+        </div>
+      </div>
+      <div class="anim anim-d2">
+        <h2 style="display:flex; align-items:center; gap:12px;"><span style="font-size:2.4rem;">&#9878;&#65039;</span> Ценности</h2>
+        <p style="margin-bottom:16px;">У человека: воспитание, границы</p>
+        <div class="card" style="border-left:3px solid var(--green); padding-left:20px;">
+          <p class="small" style="color:var(--green);">&#10003; Читай файлы &mdash; свободно</p>
+        </div>
+        <div class="card" style="border-left:3px solid var(--orange); padding-left:20px;">
+          <p class="small" style="color:var(--orange);">&#9888; Удалять &mdash; спроси</p>
+        </div>
+        <div class="card" style="border-left:3px solid var(--red); padding-left:20px;">
+          <p class="small" style="color:var(--red);">&#10007; Пароли &mdash; никогда</p>
+        </div>
+      </div>
+    </div>
+    <div class="explain-card anim anim-d3">
+      <h3>Без правил &mdash; хаос. С правилами &mdash; предсказуемость и безопасность.</h3>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 31: Memory -->
+<div class="slide" data-notes="Память — всё, что агент знает и помнит. У агента, как и у человека, есть краткосрочная и долгосрочная память. Краткосрочная — это текущий разговор и какое-то количество предыдущих. Пока вы общаетесь, он помнит всё, что обсуждали. Как рабочая встреча: пока сидите — всё в голове. Долгосрочная — это накопленный контекст. Ваши проекты, цели, предпочтения, история решений. Он помнит, что вы обсуждали месяц назад. Полгода назад. Вы уже забыли — а он может достать из глубин памяти и напомнить. «Помнишь, в октябре ты решила не работать с этим клиентом — вот почему.» «В прошлом месяце ты говорила, что хочешь попробовать X — напоминаю.» У человека это жизненный опыт и знание ситуации. Коллега, который работает с тобой год — знает контекст. Новый сотрудник — нет. Разница колоссальная. На уровне 2 контекст задаёте вы: загружаете документы, пишете инструкции, платформа запоминает паттерны. На уровне 3 — память живёт в файлах и базе данных, которые вы полностью контролируете. Она постоянно растёт и накапливается.">
+  <div class="slide-content">
+    <div class="anim section-label">Компонент 4</div>
+    <h2 class="anim anim-d1" style="display:flex; align-items:center; gap:16px;"><span style="font-size:3rem;">&#128218;</span> Память</h2>
+    <p class="anim anim-d2" style="margin-bottom:24px;">У человека: жизненный опыт и знание ситуации</p>
+    <div class="grid-2 anim anim-d3">
+      <div class="card">
+        <h3>Краткосрочная</h3>
+        <p class="small">Текущий разговор. Пока общаетесь &mdash; всё в голове.</p>
+        <p class="xsmall dim" style="margin-top:8px;">Как рабочая встреча</p>
+      </div>
+      <div class="card" style="border:1px solid var(--accent-border); background:var(--accent-soft);">
+        <h3>Долгосрочная</h3>
+        <p class="small">Проекты, цели, решения. Помнит, что было месяцы назад.</p>
+        <p class="xsmall dim" style="margin-top:8px;">Как коллега, который работает с тобой год</p>
+      </div>
+    </div>
+    <div class="anim anim-d4" style="margin-top:16px;">
+      <div class="task-example">&laquo;Помнишь, в октябре ты решила не работать с этим клиентом &mdash; вот почему.&raquo;</div>
+      <div class="task-example">&laquo;В прошлом месяце ты говорила, что хочешь попробовать X &mdash; напоминаю.&raquo;</div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 32: Connectors (MCP) -->
+<div class="slide" data-notes="Коннекторы — «руки» агента. Подключения к вашим инструментам: календарь, почта, Notion, файловая система, браузер. Без коннекторов агент может только думать и говорить. С коннекторами — он может действовать. Посмотреть расписание, создать задачу, отправить письмо, найти файл. У человека это инструменты, которыми вы владеете. Бухгалтер без доступа к бухгалтерской системе — просто консультант. С доступом — полноценный сотрудник. Техническое название — MCP, Model Context Protocol. Запоминать не нужно. Просто знайте: это стандарт подключений. Как USB — один формат для всех устройств.">
+  <div class="slide-content">
+    <div class="anim section-label">Компонент 5</div>
+    <h2 class="anim anim-d1" style="display:flex; align-items:center; gap:16px;"><span style="font-size:3rem;">&#128268;</span> Коннекторы</h2>
+    <p class="anim anim-d2" style="margin-bottom:24px;">У человека: инструменты, которыми владеете</p>
+    <div class="grid-3 anim anim-d3">
+      <div class="card" style="text-align:center;">
+        <p style="font-size:2rem; margin-bottom:6px;">&#128197;</p>
+        <p class="small" style="color:var(--text);">Календарь</p>
+      </div>
+      <div class="card" style="text-align:center;">
+        <p style="font-size:2rem; margin-bottom:6px;">&#128231;</p>
+        <p class="small" style="color:var(--text);">Почта</p>
+      </div>
+      <div class="card" style="text-align:center;">
+        <p style="font-size:2rem; margin-bottom:6px;">&#128203;</p>
+        <p class="small" style="color:var(--text);">Notion</p>
+      </div>
+      <div class="card" style="text-align:center;">
+        <p style="font-size:2rem; margin-bottom:6px;">&#128193;</p>
+        <p class="small" style="color:var(--text);">Файлы</p>
+      </div>
+      <div class="card" style="text-align:center;">
+        <p style="font-size:2rem; margin-bottom:6px;">&#127760;</p>
+        <p class="small" style="color:var(--text);">Браузер</p>
+      </div>
+      <div class="card" style="text-align:center;">
+        <p style="font-size:2rem; margin-bottom:6px;">&#128172;</p>
+        <p class="small" style="color:var(--text);">Telegram</p>
+      </div>
+    </div>
+    <div class="explain-card anim anim-d4">
+      <h3>MCP = USB для AI</h3>
+      <p>Model Context Protocol &mdash; один стандарт подключений для всех инструментов</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 33: Skills -->
+<div class="slide" data-notes="Скилы — профессиональные навыки агента. Сохранённые процессы, которые можно вызвать одной командой. Например: /day — утренний брифинг. /meeting — обработка встречи. /content — помощь с контентом. Одно слово — и агент знает всю последовательность шагов. У человека это профессиональные навыки. Опытный менеджер не думает, как провести планерку — он просто делает. Так и агент: скил — это наработанная рутина.">
+  <div class="slide-content">
+    <div class="anim section-label">Компонент 6</div>
+    <h2 class="anim anim-d1" style="display:flex; align-items:center; gap:16px;"><span style="font-size:3rem;">&#9889;</span> Скилы</h2>
+    <p class="anim anim-d2" style="margin-bottom:24px;">У человека: профессиональные навыки</p>
+    <div class="anim anim-d3" style="display:flex; flex-direction:column; gap:10px;">
+      <div class="card" style="display:flex; align-items:center; gap:16px;">
+        <span class="tag tag-accent" style="font-family:monospace; font-size:1rem;">/day</span>
+        <p class="small" style="color:var(--text);">Утренний брифинг: календарь, задачи, погода</p>
+      </div>
+      <div class="card" style="display:flex; align-items:center; gap:16px;">
+        <span class="tag tag-accent" style="font-family:monospace; font-size:1rem;">/meeting</span>
+        <p class="small" style="color:var(--text);">Обработка встречи: транскрипт, саммари, задачи</p>
+      </div>
+      <div class="card" style="display:flex; align-items:center; gap:16px;">
+        <span class="tag tag-accent" style="font-family:monospace; font-size:1rem;">/content</span>
+        <p class="small" style="color:var(--text);">Помощь с контентом: тексты, редактура, стиль</p>
+      </div>
+    </div>
+    <div class="explain-card anim anim-d4">
+      <h3>Одно слово &mdash; и агент знает всю последовательность шагов</h3>
+      <p>Как опытный менеджер: не думает, как провести планерку &mdash; просто делает</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 34: Duties (Automation) -->
+<div class="slide" data-notes="Обязанности — задачи, которые агент выполняет без напоминания. По расписанию или по событию. Утром в 8:00 — собрать брифинг. После каждой встречи — сделать саммари. Каждый вечер — дайджест новостей. У человека это должностные обязанности. Хороший сотрудник не ждёт, пока ему скажут проверить почту или подготовить отчёт к понедельнику — он делает это сам, потому что знает: это его зона ответственности. Это верхний этаж системы. Эволюция: сначала ты просишь агента руками. Потом сохраняешь как скил. Потом ставишь на автомат — и это становится его обязанностью. Запрос → скил → обязанность.">
+  <div class="slide-content">
+    <div class="anim section-label">Компонент 7</div>
+    <h2 class="anim anim-d1" style="display:flex; align-items:center; gap:16px;"><span style="font-size:3rem;">&#128197;</span> Обязанности</h2>
+    <p class="anim anim-d2" style="margin-bottom:24px;">У человека: должностные обязанности</p>
+    <div class="grid-3 anim anim-d3">
+      <div class="card" style="text-align:center;">
+        <p style="font-size:1.6rem; margin-bottom:6px;">&#9728;&#65039;</p>
+        <p class="small" style="color:var(--text); font-weight:500;">08:00</p>
+        <p class="xsmall">Утренний брифинг</p>
+      </div>
+      <div class="card" style="text-align:center;">
+        <p style="font-size:1.6rem; margin-bottom:6px;">&#128221;</p>
+        <p class="small" style="color:var(--text); font-weight:500;">После встречи</p>
+        <p class="xsmall">Саммари + задачи</p>
+      </div>
+      <div class="card" style="text-align:center;">
+        <p style="font-size:1.6rem; margin-bottom:6px;">&#127769;</p>
+        <p class="small" style="color:var(--text); font-weight:500;">Каждый вечер</p>
+        <p class="xsmall">Дайджест дня</p>
+      </div>
+    </div>
+    <div class="anim anim-d4" style="margin-top:24px;">
+      <p class="small dim" style="text-align:center; margin-bottom:12px;">Эволюция использования</p>
+      <div class="flow" style="justify-content:center;">
+        <div class="flow-step">Запрос руками</div>
+        <span class="flow-arrow">&rarr;</span>
+        <div class="flow-step">Скил</div>
+        <span class="flow-arrow">&rarr;</span>
+        <div class="flow-step active">Обязанность</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 35: Full schema — all components -->
+<div class="slide" data-notes="Вот как это выглядит целиком: Мозг думает. Идентичность определяет, кто он. Ценности — что можно и нельзя. Память — что он знает и помнит о тебе. Коннекторы — чем он может пользоваться. Скилы — что он умеет делать. Обязанности — что он делает сам, без напоминания. Ключевой инсайт: не нужны ВСЕ компоненты сразу. Даже просто Память плюс один Коннектор — это уже серьёзный шаг. Начинайте с малого, добавляйте по мере необходимости.">
+  <div class="slide-content">
+    <div class="anim section-label">Полная картина</div>
+    <h2 class="anim anim-d1">Анатомия агента</h2>
+    <div class="agent-body anim anim-d2">
+      <div class="agent-figure">
+        <div class="agent-icon">&#129302;</div>
+        <p class="small" style="color:var(--text); font-weight:500; margin-top:8px;">AI-агент</p>
+      </div>
+      <div class="agent-parts">
+        <div class="agent-part"><span class="agent-part-emoji">&#129504;</span><div><div class="agent-part-label">Мозг</div><div class="agent-part-desc">Думает и анализирует</div></div></div>
+        <div class="agent-part"><span class="agent-part-emoji">&#128100;</span><div><div class="agent-part-label">Идентичность</div><div class="agent-part-desc">Кто он и как общается</div></div></div>
+        <div class="agent-part"><span class="agent-part-emoji">&#9878;&#65039;</span><div><div class="agent-part-label">Ценности</div><div class="agent-part-desc">Что можно и нельзя</div></div></div>
+        <div class="agent-part"><span class="agent-part-emoji">&#128218;</span><div><div class="agent-part-label">Память</div><div class="agent-part-desc">Что знает и помнит о тебе</div></div></div>
+        <div class="agent-part"><span class="agent-part-emoji">&#128268;</span><div><div class="agent-part-label">Коннекторы</div><div class="agent-part-desc">Чем может пользоваться</div></div></div>
+        <div class="agent-part"><span class="agent-part-emoji">&#9889;</span><div><div class="agent-part-label">Скилы</div><div class="agent-part-desc">Что умеет делать</div></div></div>
+        <div class="agent-part"><span class="agent-part-emoji">&#128197;</span><div><div class="agent-part-label">Обязанности</div><div class="agent-part-desc">Что делает сам, без напоминания</div></div></div>
+      </div>
+    </div>
+    <div class="success-card anim anim-d3">
+      <p style="color:var(--green); font-weight:500;">Не нужны все компоненты сразу. Память + один коннектор &mdash; уже серьёзный шаг.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 36: Team — main agent and sub-agents -->
+<div class="slide" data-notes="И последний кусочек пазла — делегирование. Когда задача сложная, агент может создать себе помощников. Суб-агенты — специалисты на подхвате. Один ищет информацию, другой работает с файлами, третий пишет код. Главный агент — как менеджер. Он понимает задачу целиком, распределяет работу, собирает результаты. Суб-агенты — как команда: каждый делает свою часть. Все правила и ценности главного агента распространяются на всех суб-агентов. Это как корпоративная культура — пронизывает всю команду. Пока что это уровень 3, продвинутый. Но на уровне 2 это тоже начинает появляться. Когда Cowork запускает несколько шагов параллельно — это тот же принцип.">
+  <div class="slide-content">
+    <div class="anim section-label">Делегирование</div>
+    <h2 class="anim anim-d1">Главный агент + <span class="accent">суб-агенты</span></h2>
+    <p class="anim anim-d2" style="margin-bottom:24px;">Как менеджер с командой специалистов</p>
+    <div class="anim anim-d3" style="text-align:center;">
+      <div class="card" style="display:inline-block; padding:16px 32px; border:2px solid var(--accent-border); background:var(--accent-soft);">
+        <p style="font-size:2rem;">&#129302;</p>
+        <p style="color:var(--accent); font-weight:700; font-size:1.1rem;">Главный агент</p>
+        <p class="xsmall dim">Понимает задачу, распределяет, собирает</p>
+      </div>
+    </div>
+    <div class="anim anim-d4" style="text-align:center; margin:12px 0;">
+      <span style="font-size:1.4rem; color:var(--accent);">&#8595; &nbsp; &#8595; &nbsp; &#8595;</span>
+    </div>
+    <div class="grid-3 anim anim-d5">
+      <div class="card" style="text-align:center;">
+        <p style="font-size:1.6rem; margin-bottom:6px;">&#128269;</p>
+        <p class="small" style="color:var(--text); font-weight:500;">Суб-агент 1</p>
+        <p class="xsmall dim">Ищет информацию</p>
+      </div>
+      <div class="card" style="text-align:center;">
+        <p style="font-size:1.6rem; margin-bottom:6px;">&#128196;</p>
+        <p class="small" style="color:var(--text); font-weight:500;">Суб-агент 2</p>
+        <p class="xsmall dim">Работает с файлами</p>
+      </div>
+      <div class="card" style="text-align:center;">
+        <p style="font-size:1.6rem; margin-bottom:6px;">&#128187;</p>
+        <p class="small" style="color:var(--text); font-weight:500;">Суб-агент 3</p>
+        <p class="xsmall dim">Пишет код</p>
+      </div>
+    </div>
+    <div class="explain-card anim anim-d6">
+      <h3>Правила и ценности &mdash; как корпоративная культура</h3>
+      <p>Распространяются от главного агента на всех суб-агентов</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE: OpenClaw cover -->
+<div class="slide slide-dark" style="display:flex; align-items:center; justify-content:center;">
+  <div class="slide-content" style="text-align:center; max-width:800px;">
+    <div class="anim section-label">Инструменты</div>
+    <div class="anim anim-d1 section-title">Что такое <span class="accent">OpenClaw</span></div>
+  </div>
+</div>
+
+<!-- SLIDE 43: OpenClaw — intro -->
+<div class="slide" data-notes="Отдельно про OpenClaw — потому что многие спрашивают. OpenClaw — это впечатляющий open-source проект. 247 тысяч звёзд на GitHub — больше, чем у Linux. Готовый агент: ставишь на свой компьютер, общаешься через Telegram или WhatsApp. Быстрый старт. Если хотите попробовать без возни с настройкой — есть сервис aideploy.co, который разворачивает OpenClaw в один клик на вашем облаке. Но у OpenClaw есть серьёзные особенности, о которых важно знать.">
+  <div class="slide-content">
+    <div class="anim section-label">Open-source агент</div>
+    <h2 class="anim anim-d1"><a href="https://openclaw.ai" target="_blank">OpenClaw</a></h2>
+    <p class="anim anim-d2" style="margin-bottom:24px;">Впечатляющий проект с серьёзными оговорками</p>
+    <div class="speed-box anim anim-d3">
+      <div class="speed-item">
+        <div class="speed-num" style="color:var(--accent);">247K</div>
+        <div class="speed-label">звёзд на GitHub</div>
+      </div>
+      <div class="speed-item">
+        <div class="speed-num" style="color:var(--text-secondary);">53</div>
+        <div class="speed-label">встроенных скила</div>
+      </div>
+      <div class="speed-item">
+        <div class="speed-num" style="color:var(--text-secondary);">2</div>
+        <div class="speed-label">мессенджера</div>
+      </div>
+    </div>
+    <div class="grid-2 anim anim-d4" style="margin-top:16px;">
+      <div class="card">
+        <p class="small" style="color:var(--text);">&#10003; Готовый агент &mdash; быстрый старт</p>
+        <p class="small" style="color:var(--text);">&#10003; Telegram, WhatsApp</p>
+        <p class="small" style="color:var(--text);">&#10003; Open-source</p>
+      </div>
+      <div class="card" style="border-left:3px solid var(--red);">
+        <p class="small" style="color:var(--text);">&#9888; Стоимость непредсказуема</p>
+        <p class="small" style="color:var(--text);">&#9888; Серьёзные проблемы с безопасностью</p>
+        <p class="small" style="color:var(--text);">&#9888; Проект без основателя</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 44: OpenClaw — history and fate -->
+<div class="slide" data-notes="Сначала — что произошло с проектом. В феврале 2026 создатель OpenClaw, Питер Штайнбергер, ушёл в OpenAI. Это был acqui-hire (аквихайр — поглощение ради найма) — OpenAI наняли Питера, а проект передали open-source сообществу. Сэм Алтман лично объявил об этом. Точная сумма не раскрыта, но по оценкам отрасли — от 2 до 15 миллионов долларов. И вот что Питер сказал о своей новой миссии: «My next mission is to build an agent that even my mum can use» — «Моя следующая миссия — создать агента, которым сможет пользоваться даже моя мама.» То есть, человек, который создал самый популярный open-source агент, считает, что его продукт пока не для мам, читай «не для обычных людей». И идёт в OpenAI это менять. Это говорит нам о том, что скоро появятся новые решения. Они будут устроены по этому же принципу, но не будет технического барьера. Поэтому важно понять именно принцип.">
+  <div class="slide-content">
+    <div class="anim section-label">OpenClaw</div>
+    <h2 class="anim anim-d1">Создатель ушёл в <span class="accent">OpenAI</span></h2>
+    <p class="anim anim-d2 dim" style="margin-bottom:20px;">Февраль 2026 &mdash; acqui-hire</p>
+    <div class="anim anim-d3 card" style="border-left:3px solid var(--accent);">
+      <p style="color:var(--text-secondary); font-size:1rem;"><strong>Питер Штайнбергер</strong> &rarr; OpenAI</p>
+      <p class="small dim" style="margin-top:4px;">Проект передан open-source сообществу. Оценка: $2&ndash;15M</p>
+    </div>
+    <div class="anim anim-d4" style="margin-top:24px;">
+      <p class="big-quote" style="font-size:1.8rem;">&laquo;My next mission is to build an agent that <span class="accent">even my mum</span> can use&raquo;</p>
+      <p class="small dim" style="margin-top:8px;">&mdash; Питер Штайнбергер</p>
+    </div>
+    <div class="explain-card anim anim-d5">
+      <h3>Что это значит для нас?</h3>
+      <p>Скоро появятся новые решения &mdash; тот же принцип, но без технического барьера. Поэтому важно понять именно принцип.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 45: OpenClaw — cost -->
+<div class="slide" data-notes="Стоимость. OpenClaw бесплатный, но работает через API — вы платите за каждый запрос к модели напрямую. Это может быть очень дорого. По умолчанию используется Opus — самая мощная и дорогая модель. Вся память бота отправляется с каждым запросом. Плюс каждые 30 минут срабатывает так называемый heartbeat — «пульс»: бот сам просыпается, проверяет, не появилось ли чего нового, не нужно ли что-то сохранить в память. Это удобно — но каждый такой «пульс» стоит денег. Токены сгорают стремительно. Без контроля — счёт за месяц может оказаться неожиданно высоким. Раньше можно было подключить подписку Claude, но Anthropic закрыла эту возможность. В моей системе я использую подписку — предсказуемая стоимость, без сюрпризов.">
+  <div class="slide-content">
+    <div class="anim section-label">OpenClaw</div>
+    <h2 class="anim anim-d1">Стоимость: <span class="red">может быть очень дорого</span></h2>
+    <div class="anim anim-d2 card" style="margin:20px 0; background:var(--red-soft); border:1px solid rgba(220,38,38,0.15);">
+      <h3 style="color:var(--red); margin-bottom:8px;">Почему счёт растёт незаметно</h3>
+      <p class="small">Вся память бота отправляется с каждым запросом &mdash; контекст быстро растёт</p>
+      <p class="small" style="margin-top:8px;"><strong>Heartbeat</strong> каждые 30 мин &mdash; бот сам просыпается и тратит токены, даже когда вы спите</p>
+      <p class="small" style="margin-top:8px;">По умолчанию &mdash; модель Opus. Самая мощная. И самая дорогая</p>
+    </div>
+    <div class="grid-2 anim anim-d3">
+      <div class="card">
+        <h3>Без контроля</h3>
+        <p class="small">Счёт за месяц может оказаться неожиданно высоким &mdash; сотни долларов и выше</p>
+        <p class="small dim" style="margin-top:8px;">Особенно если забыть про лимиты или оставить включённым надолго</p>
+      </div>
+      <div class="card" style="border:1px solid var(--green-border); background:var(--green-soft);">
+        <h3 style="color:var(--green);">Альтернатива</h3>
+        <p class="small">Подписка: предсказуемая стоимость, без сюрпризов</p>
+        <p class="small dim" style="margin-top:8px;">$20&ndash;100/мес &mdash; фиксированная сумма</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 46: OpenClaw — security (5 incidents with sources) -->
+<div class="slide" data-notes="А теперь — главное. Безопасность. И здесь OpenClaw стал, мягко говоря, поучительным примером. OpenClaw работает от подхода «дай максимум доступа, потом ограничь». По умолчанию широкие разрешения — на файлы, на команды, на всё. 53 встроенных скила активируются автоматически. Логика: чем больше доступов — тем полезнее. Но и тем рискованнее. И вот что реально произошло — конкретные инциденты: Бот начал отвечать жене в WhatsApp. Один пользователь подключил iMessage без ограничений — и бот вошёл в бесконечный цикл, отправив жене сотни сообщений. Без лимита на повторы, без списка разрешённых контактов. 135 тысяч серверов открыты в интернет. По умолчанию OpenClaw привязывался ко ВСЕМ сетевым интерфейсам — включая публичный интернет. К февралю 2026 — больше 135 тысяч инстансов были доступны любому. 93% из них — без нормальной аутентификации. Каждый пятый скил в маркетплейсе — вредоносный. Маркетплейс скилов ClawHub был массово отравлен. 1184 вредоносных скила из 10 700 — каждый пятый. Они воровали пароли от iCloud, криптокошельки, SSH-ключи, сессии Telegram. Инфостилеры добавили OpenClaw в must-steal. Вредоносные программы RedLine и Lumma — популярные инфостилеры — добавили пути файлов OpenClaw в список «обязательно украсть». Потому что OpenClaw хранит API-ключи, пароли и учётные данные в обычном тексте. Критическая уязвимость CVE-2026-25253. Позволяла удалённо выполнять код на вашей машине через три этапа атаки — от кражи токена до полного контроля. Оценка серьёзности — 8.8 из 10. Почему это произошло? Потому что OpenClaw был создан как хобби-проект одного разработчика, оптимизированный для скорости и удобства. Когда он стал вирусным — эти дизайн-решения превратились в катастрофу.">
+  <div class="slide-content">
+    <div class="anim section-label">OpenClaw</div>
+    <h2 class="anim anim-d1">Безопасность: <span class="red">5 инцидентов</span></h2>
+    <div style="display:flex; flex-direction:column; gap:8px; margin-top:16px;">
+      <div class="warn-card anim anim-d2">
+        <p><strong style="color:var(--red);">&#9888; 500 сообщений жене в WhatsApp</strong></p>
+        <p class="xsmall">Бот вошёл в бесконечный цикл без лимитов &middot; <a href="https://chrisboyd.me/blog/openclaw-meltdown/" target="_blank" rel="noopener">Источник</a></p>
+      </div>
+      <div class="warn-card anim anim-d3">
+        <p><strong style="color:var(--red);">&#9888; 135 000 серверов открыты в интернет</strong></p>
+        <p class="xsmall">93% без аутентификации. Пароль мог быть буквой &laquo;а&raquo; &middot; <a href="https://www.bitdefender.com/en-us/blog/hotforsecurity/135k-openclaw-ai-agents-exposed-online" target="_blank" rel="noopener">Bitdefender</a> &middot; <a href="https://www.bitsight.com/blog/openclaw-ai-security-risks-exposed-instances" target="_blank" rel="noopener">Bitsight</a></p>
+      </div>
+      <div class="warn-card anim anim-d4">
+        <p><strong style="color:var(--red);">&#9888; 1 184 вредоносных скила из 10 700</strong></p>
+        <p class="xsmall">Воровали пароли, криптокошельки, SSH-ключи &middot; <a href="https://thehackernews.com/2026/02/researchers-find-341-malicious-clawhub.html" target="_blank" rel="noopener">Hacker News</a> &middot; <a href="https://cybersecuritynews.com/clawhavoc-poisoned-openclaws-clawhub/" target="_blank" rel="noopener">CyberSec News</a></p>
+      </div>
+      <div class="warn-card anim anim-d5">
+        <p><strong style="color:var(--red);">&#9888; Инфостилеры добавили <a href="https://openclaw.ai" target="_blank">OpenClaw</a> в must-steal</strong></p>
+        <p class="xsmall">RedLine, Lumma крадут API-ключи из plain-text файлов &middot; <a href="https://www.kaspersky.com/blog/moltbot-enterprise-risk-management/55317/" target="_blank" rel="noopener">Kaspersky</a></p>
+      </div>
+      <div class="warn-card anim anim-d6">
+        <p><strong style="color:var(--red);">&#9888; CVE-2026-25253 &mdash; удалённое выполнение кода</strong></p>
+        <p class="xsmall">Оценка серьёзности: 8.8/10 &middot; <a href="https://nvd.nist.gov/vuln/detail/CVE-2026-25253" target="_blank" rel="noopener">NVD</a> &middot; <a href="https://thehackernews.com/2026/02/openclaw-bug-enables-one-click-remote.html" target="_blank" rel="noopener">Hacker News</a></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 47: Two approaches to security -->
+<div class="slide" data-notes="Подход, который использую я, работает наоборот. Начинаешь с минимума: например, агент может читать, отвечать, помогать с настройкой. Потом шаг за шагом открываешь: календарь, задачи, почту. Ты чувствуешь себя уверенно на каждом этапе. Добавляешь ровно столько, сколько нужно — и не больше. Это разница в подходе. OpenClaw: «вот тебе всё, разберись». Другой подход: «давай вместе, по шагам, под контролем». Резюме: OpenClaw — впечатляющий проект, который показал, что хочет рынок. Но он также показал, что бывает, когда мощь без контроля. Если хотите попробовать — пробуйте, но имейте в виду все особенности. А если вам важен контроль и безопасность — стоит строить своё. И я покажу, как.">
+  <div class="slide-content">
+    <div class="anim section-label">Безопасность</div>
+    <h2 class="anim anim-d1">Итак, есть два подхода</h2>
+    <table class="cmp-table anim anim-d2" style="margin-top:20px;">
+      <thead>
+        <tr>
+          <th></th>
+          <th>&#128275; Всё открыто</th>
+          <th>&#128274; По шагам</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Принцип</td>
+          <td>&laquo;Вот тебе всё, разберись&raquo;</td>
+          <td>&laquo;Давай вместе, под контролем&raquo;</td>
+        </tr>
+        <tr>
+          <td>Доступы</td>
+          <td>Максимум сразу</td>
+          <td>Минимум &rarr; добавляешь по мере надобности</td>
+        </tr>
+        <tr>
+          <td>Контроль</td>
+          <td>Надеешься, что всё ок</td>
+          <td>Уверен на каждом этапе</td>
+        </tr>
+        <tr>
+          <td>Риск</td>
+          <td style="color:var(--red);">Высокий</td>
+          <td style="color:var(--green);">Минимальный</td>
+        </tr>
+        <tr>
+          <td>Пример</td>
+          <td><a href="https://openclaw.ai" target="_blank">OpenClaw</a></td>
+          <td style="color:var(--accent);"><a href="https://claude.ai/code" target="_blank">Claude Code</a> + CLAUDE.md</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="explain-card anim anim-d3">
+      <h3>Мощь без контроля &mdash; это не инструмент, а риск</h3>
+      <p>Добавляйте ровно столько доступов, сколько нужно &mdash; и не больше</p>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================================
+<!-- BLOCK 3: SLIDES 49-69                      -->
+<!-- ==========================================
+
+<!-- SLIDE 49: Block title — First Steps -->
+<div class="slide slide-dark" data-notes="Добро пожаловать обратно. Последний рывок — и он самый практичный. В первом блоке я показала, что возможно. Во втором — как это устроено. Сейчас — что конкретно делать вам. Каждому. Начиная с сегодня.">
+  <div class="slide-content" style="text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:60vh;">
+    <div class="anim section-label">Блок 3</div>
+    <div class="anim anim-d1 section-title">Первые шаги</div>
+    <div class="anim anim-d2 section-subtitle">Что конкретно делать — начиная с сегодня</div>
+  </div>
+</div>
+
+<!-- SLIDE 50: Main barrier is in your head -->
+<div class="slide" data-notes="Прежде чем говорить про инструменты — давайте про главное. Самый большой барьер — не технический. Он в голове. Люди просто не позволяют себе думать, что «и это тоже можно передать». Мы привыкли делать рутину сами. Проверить почту — сам. Составить план дня — сам. Написать ответ — сам. Подготовить отчёт — сам. А теперь представьте: у вас появился сотрудник. Невероятно умный, работает 24/7, не устаёт, не обижается, помнит всё. Но — он не знает вашу специфику. Ему нужна инструкция. Вот простое правило: если задачу можно передать удалённому сотруднику, который сидит за компьютером и никуда физически не ходит — эту задачу можно передать агенту.">
+  <div class="slide-content">
+    <div class="anim section-label">Главный барьер</div>
+    <h2 class="anim anim-d1">Барьер — <span class="accent">не технический</span></h2>
+    <p class="anim anim-d2" style="font-size:1.3rem; margin-bottom:24px;">Мы привыкли делать рутину сами</p>
+    <div class="anim anim-d3" style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:24px;">
+      <span class="tag tag-accent">Почта</span>
+      <span class="tag tag-accent">План дня</span>
+      <span class="tag tag-accent">Ответы</span>
+      <span class="tag tag-accent">Отчёты</span>
+      <span class="tag tag-accent">Поиск</span>
+    </div>
+    <div class="anim anim-d4 explain-card">
+      <h3>Простое правило</h3>
+      <p>Если задачу можно передать удалённому сотруднику за компьютером &mdash; её можно передать агенту.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 51: Framework — 6 steps -->
+<div class="slide" data-notes="Я дам вам конкретный фреймворк. Шесть шагов. Можете записать — или не волноваться, всё будет в материалах после воркшопа.">
+  <div class="slide-content" style="text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:60vh;">
+    <div class="anim section-label">Фреймворк</div>
+    <h2 class="anim anim-d1"><span class="accent">6 шагов</span> к делегированию</h2>
+    <p class="anim anim-d2">Работает на любом уровне &mdash; от <a href="https://chatgpt.com" target="_blank">ChatGPT</a> до собственной системы</p>
+  </div>
+</div>
+
+<!-- SLIDE 52: Step 1 — List your routines -->
+<div class="slide" data-notes="Шаг первый — запиши свои рутины. Всё, что ты делаешь за компьютером регулярно. Ежедневно, еженедельно, ежемесячно. Не фильтруй. Не думай «это слишком мелко» или «это слишком сложно». Просто список. Проверяю почту. Планирую день. Пишу отчёт. Готовлю презентацию. Ищу информацию. Отвечаю на письма. Обрабатываю встречи. Это ваш raw material — сырьё для делегирования.">
+  <div class="slide-content">
+    <div class="anim section-label">Шаг 1 из 6</div>
+    <h2 class="anim anim-d1"><span class="accent">Запиши</span> свои рутины</h2>
+    <p class="anim anim-d2" style="margin-bottom:20px;">Всё, что делаешь за компьютером регулярно. Не фильтруй.</p>
+    <div class="anim anim-d3 card">
+      <p class="small dim" style="margin-bottom:8px;">Примеры:</p>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <span class="tag tag-accent">Проверяю почту</span>
+        <span class="tag tag-accent">Планирую день</span>
+        <span class="tag tag-accent">Пишу отчёт</span>
+        <span class="tag tag-accent">Готовлю презентацию</span>
+        <span class="tag tag-accent">Ищу информацию</span>
+        <span class="tag tag-accent">Отвечаю на письма</span>
+        <span class="tag tag-accent">Обрабатываю встречи</span>
+      </div>
+    </div>
+    <p class="anim anim-d4 dim small" style="margin-top:12px;">Это ваш raw material &mdash; сырьё для делегирования</p>
+  </div>
+</div>
+
+<!-- SLIDE 53: Step 2 — Imagine an employee -->
+<div class="slide" data-notes="Шаг второй — представь, что нанимаешь умного сотрудника. Он невероятно умный. Но не знает специфику твоей работы. Вообще ничего не знает — ни про твои проекты, ни про твоих клиентов, ни про твои предпочтения. Ему нужна подробная инструкция. Не «разберись сам» — а конкретно: что делать, в каком порядке, где брать информацию, куда складывать результат. Это ключевой сдвиг мышления. Вы не «пишете промт». Вы — руководитель, который вводит в курс дела нового сотрудника.">
+  <div class="slide-content">
+    <div class="anim section-label">Шаг 2 из 6</div>
+    <h2 class="anim anim-d1"><span class="accent">Представь</span> сотрудника</h2>
+    <p class="anim anim-d2" style="margin-bottom:20px;">Невероятно умный. Но не знает вашу специфику.</p>
+    <div class="anim anim-d3 card" style="border-left: 3px solid var(--accent);">
+      <h3 style="font-size:1.1rem;">Ему нужна инструкция</h3>
+      <ul style="margin-top:10px; padding-left:20px;">
+        <li>Что делать</li>
+        <li>В каком порядке</li>
+        <li>Где брать информацию</li>
+        <li>Куда складывать результат</li>
+      </ul>
+    </div>
+    <div class="anim anim-d4 explain-card">
+      <h3>Сдвиг мышления</h3>
+      <p>Вы не &laquo;пишете промт&raquo;. Вы &mdash; руководитель, который вводит в курс дела нового сотрудника.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 54: Step 3 — Write an instruction -->
+<div class="slide" data-notes="Шаг третий — напиши ему инструкцию. Пошагово. Детально. Давайте на примере. Рутина: «Каждое утро проверяю календарь, почту, задачи, приоритизирую день.» Инструкция сотруднику: «Посмотри мой календарь на сегодня. Проверь непрочитанные письма, выдели срочные. Посмотри список задач в Notion. Составь брифинг: встречи, срочные письма, главные задачи. Предложи приоритеты на день.» Видите? Когда вы проговариваете инструкцию, вы сразу понимаете: какие инструменты нужны, какие подключения, в каком порядке. Календарь, почта, Notion — вот вам три коннектора. А сама последовательность — это скил, команда /day.">
+  <div class="slide-content">
+    <div class="anim section-label">Шаг 3 из 6</div>
+    <h2 class="anim anim-d1"><span class="accent">Напиши</span> инструкцию</h2>
+    <div class="anim anim-d2 usecase-grid" style="margin-top:16px;">
+      <div class="usecase-before">
+        <div class="usecase-label" style="color:var(--text-tertiary);">Рутина</div>
+        <p style="font-size:1rem; color:var(--text);">Каждое утро проверяю календарь, почту, задачи, приоритизирую день</p>
+      </div>
+      <div class="usecase-after">
+        <div class="usecase-label" style="color:var(--accent);">Инструкция</div>
+        <ol style="font-size:0.9rem; padding-left:18px; color:var(--text);">
+          <li>Посмотри календарь на сегодня</li>
+          <li>Проверь непрочитанные письма, выдели срочные</li>
+          <li>Посмотри задачи в Notion</li>
+          <li>Составь брифинг</li>
+          <li>Предложи приоритеты</li>
+        </ol>
+      </div>
+    </div>
+    <div class="anim anim-d3 flow" style="margin-top:16px;">
+      <span class="flow-step active">Календарь</span>
+      <span class="flow-arrow">+</span>
+      <span class="flow-step active">Почта</span>
+      <span class="flow-arrow">+</span>
+      <span class="flow-step active">Notion</span>
+      <span class="flow-arrow">=</span>
+      <span class="flow-step" style="background:var(--accent-soft); border-color:var(--accent-border); color:var(--accent); font-weight:700;">/day</span>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 55: Step 4 — AI-First planning -->
+<div class="slide" data-notes="Шаг четвёртый — для каждой задачи спроси: руками или AI? Это привычка, которая меняет всё. Перед тем как начать большую работу — разбей её на шаги. И для каждого шага реши: это делаю я или AI? И если AI — какой именно инструмент? Пример: готовлю еженедельный отчёт. Собрать данные из трёх источников → AI (коннекторы к базам данных). Выделить ключевые метрики → AI (анализ). Добавить свой комментарий и выводы → я (моя экспертиза, мой взгляд). Оформить в презентацию → AI (форматирование). Вы не заменяете себя. Вы убираете механическую работу и оставляете себе то, что требует вашего мышления.">
+  <div class="slide-content">
+    <div class="anim section-label">Шаг 4 из 6</div>
+    <h2 class="anim anim-d1"><span class="accent">AI-First</span> планирование</h2>
+    <p class="anim anim-d2" style="margin-bottom:16px;">Для каждой подзадачи: руками или AI?</p>
+    <div class="anim anim-d3 card" style="padding:16px 20px;">
+      <p class="small dim" style="margin-bottom:10px;">Пример: еженедельный отчёт</p>
+      <table class="data-table" style="margin:0;">
+        <thead>
+          <tr><th>Шаг</th><th>Кто</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Собрать данные из 3 источников</td><td><span class="tag tag-blue">AI</span></td></tr>
+          <tr><td>Выделить ключевые метрики</td><td><span class="tag tag-blue">AI</span></td></tr>
+          <tr><td>Комментарий и выводы</td><td><span class="tag tag-orange">Я</span></td></tr>
+          <tr><td>Оформить в презентацию</td><td><span class="tag tag-blue">AI</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="anim anim-d4 explain-card">
+      <p>Вы не заменяете себя. Вы убираете механику и оставляете то, что требует <strong>вашего</strong> мышления.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 56: Step 5 — Swipe File -->
+<div class="slide" data-notes="Шаг пятый — собирай образцы отличной работы. Это называется Swipe File. Когда вы встречаете отличное письмо, мощную презентацию, хорошо написанный пост — сохраняйте. Не «в закладки», а в рабочую папку, организованную по задачам. Почему? Потому что показать AI «вот так выглядит хорошо» — в разы эффективнее, чем описывать словами. Вместо «напиши профессиональное письмо» — «вот образец отличного письма, напиши в таком же стиле».">
+  <div class="slide-content">
+    <div class="anim section-label">Шаг 5 из 6</div>
+    <h2 class="anim anim-d1">Собирай образцы &mdash; <span class="accent">Swipe File</span></h2>
+    <p class="anim anim-d2" style="margin-bottom:20px;">Отличные примеры &mdash; лучшая инструкция для AI</p>
+    <div class="anim anim-d3 chat-compare">
+      <div>
+        <div class="chat-label" style="color:var(--red);">Без образца</div>
+        <div class="chat-bubble chat-ai-bad">&laquo;Напиши профессиональное письмо клиенту&raquo;</div>
+      </div>
+      <div>
+        <div class="chat-label" style="color:var(--accent);">С образцом</div>
+        <div class="chat-bubble chat-ai-good">&laquo;Вот образец отличного письма. Напиши в таком же стиле&raquo;</div>
+      </div>
+    </div>
+    <div class="anim anim-d4 card" style="border-left: 3px solid var(--accent);">
+      <p style="font-size:1rem; color:var(--text);"><strong>Показать</strong> &laquo;вот так выглядит хорошо&raquo; &mdash; в разы эффективнее, чем <strong>описывать</strong> словами</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 57: Step 6 — Evolution -->
+<div class="slide" data-notes="Шаг шестой — понимай эволюцию. Каждая задача проходит три стадии: Сначала — запрос. Ты просишь агента руками: «Проверь мой календарь на сегодня.» Потом — скил. Ты сохраняешь последовательность: одна команда /day — и агент знает все шаги. Потом — обязанность. Агент делает это сам, каждое утро в 8:00, без напоминания. Запрос → скил → обязанность. Это путь от ручного управления к автономии. И начинается он с того самого списка рутин из шага 1.">
+  <div class="slide-content">
+    <div class="anim section-label">Шаг 6 из 6</div>
+    <h2 class="anim anim-d1">Эволюция задачи</h2>
+    <div class="anim anim-d2 flow" style="justify-content:center; margin:24px 0;">
+      <span class="flow-step">Запрос</span>
+      <span class="flow-arrow">&rarr;</span>
+      <span class="flow-step active">Скил</span>
+      <span class="flow-arrow">&rarr;</span>
+      <span class="flow-step" style="background:var(--green-soft); border-color:var(--green-border); color:var(--green); font-weight:600;">Обязанность</span>
+    </div>
+    <div class="anim anim-d3 grid-3">
+      <div class="card" style="text-align:center;">
+        <h3 style="color:var(--text-secondary);">Запрос</h3>
+        <p class="small">&laquo;Проверь мой календарь на сегодня&raquo;</p>
+      </div>
+      <div class="card" style="text-align:center; border-color:var(--accent-border);">
+        <h3 style="color:var(--accent);">Скил</h3>
+        <p class="small">Команда <span class="mono accent">/day</span> &mdash; все шаги записаны</p>
+      </div>
+      <div class="card" style="text-align:center; border-color:var(--green-border);">
+        <h3 style="color:var(--green);">Обязанность</h3>
+        <p class="small">Каждое утро в 8:00, без напоминания</p>
+      </div>
+    </div>
+    <p class="anim anim-d4 dim small" style="text-align:center; margin-top:16px;">От ручного управления к автономии</p>
+  </div>
+</div>
+
+<!-- SLIDE 58: Full framework summary -->
+<div class="slide" data-notes="Давайте соберём: 1. Запиши свои рутины. 2. Представь умного сотрудника. 3. Напиши ему инструкцию. 4. Для каждой задачи: руками или AI? 5. Собирай образцы отличной работы. 6. Развивай: запрос → скил → обязанность. Это работает на любом уровне. Неважно, используете ли вы ChatGPT, Cowork или собственную систему. Фреймворк один и тот же.">
+  <div class="slide-content">
+    <div class="anim section-label">Фреймворк целиком</div>
+    <h2 class="anim anim-d1"><span class="accent">6 шагов</span> к делегированию</h2>
+    <ol class="anim anim-d2 steps" style="margin-top:20px;">
+      <li><div><strong style="color:var(--text);">Запиши свои рутины</strong><br><span class="small">Всё, что делаешь за компьютером регулярно</span></div></li>
+      <li><div><strong style="color:var(--text);">Представь умного сотрудника</strong><br><span class="small">Который ничего не знает о твоей работе</span></div></li>
+      <li><div><strong style="color:var(--text);">Напиши ему инструкцию</strong><br><span class="small">Пошагово, детально, с примерами</span></div></li>
+      <li><div><strong style="color:var(--text);">Для каждой задачи: руками или AI?</strong><br><span class="small">Убирай механику, оставляй мышление</span></div></li>
+      <li><div><strong style="color:var(--text);">Собирай образцы</strong><br><span class="small">Swipe File &mdash; показать лучше, чем описать</span></div></li>
+      <li><div><strong style="color:var(--text);">Развивай: запрос &rarr; скил &rarr; обязанность</strong><br><span class="small">От ручного управления к автономии</span></div></li>
+    </ol>
+    <p class="anim anim-d3 dim small" style="margin-top:16px;">Работает на любом уровне &mdash; от <a href="https://chatgpt.com" target="_blank">ChatGPT</a> до собственной системы</p>
+  </div>
+</div>
+
+<!-- SLIDE 59: Beginners — Level 1 start -->
+<div class="slide" data-notes="Для тех, кто сейчас просто пользуется ChatGPT или Claude как чатом — ваш следующий шаг прост: дайте AI контекст. В приложениях: Projects — контекстная папка. Есть и в Claude, и в ChatGPT. Загружаете документы, пишете инструкции — и все чаты внутри проекта видят этот контекст. 15 минут — и ваш AI уже не незнакомец. Плюс коннекторы и скилы в Claude. Custom GPT в ChatGPT — мини-приложение под конкретную задачу. Всё это без кода, прямо в браузере. В коде — Claude Code, MCP подключения, суб-агенты. Это уровень 3. Начните с приложений. Попользуйтесь неделю.">
+  <div class="slide-content">
+      <div class="anim"><span class="level-badge level-1">Уровень 1 → 2</span></div>
+      <h2 class="anim anim-d1" style="margin-top:12px;">С чего начать, чтобы перейти на уровень 2</h2>
+      <div class="anim anim-d2 grid-2" style="margin-top:20px;">
+        <div class="card">
+          <h3 class="small" style="margin-bottom:12px;">ChatGPT</h3>
+          <ul style="list-style:none; padding:0; margin:0;">
+            <li class="small" style="margin-bottom:8px;"><strong><a href="https://chatgpt.com/gpts" target="_blank">Custom GPT</a></strong> — мини-ассистент под задачу</li>
+            <li class="small" style="margin-bottom:8px;"><strong>Projects</strong> — контекстная папка проекта</li>
+            <li class="small" style="margin-bottom:8px;"><strong>Connectors</strong> — Google Drive, почта, календарь</li>
+            <li class="small"><strong><a href="https://atlas.ai" target="_blank">Atlas</a></strong> — браузер со встроенным ChatGPT</li>
+          </ul>
+        </div>
+        <div class="card" style="border-color:var(--accent-border);">
+          <h3 class="small" style="margin-bottom:12px;">Claude</h3>
+          <ul style="list-style:none; padding:0; margin:0;">
+            <li class="small" style="margin-bottom:8px;"><strong><a href="https://claude.ai/projects" target="_blank">Projects</a></strong> — постоянный контекст для агента</li>
+            <li class="small" style="margin-bottom:8px;"><strong>Connectors</strong> — Google Drive, GitHub, Jira</li>
+            <li class="small" style="margin-bottom:8px;"><strong>Skills</strong> — мини-автоматизации в приложении</li>
+            <li class="small"><strong><a href="https://claude.ai/cowork" target="_blank">Claude Cowork</a></strong> — агент с памятью и инструментами</li>
+          </ul>
+        </div>
+      </div>
+      <p class="anim anim-d3 dim small" style="margin-top:16px; text-align:center;">Начните с одного инструмента. Попользуйтесь неделю. Потом — следующий шаг.</p>
+    </div>
+</div>
+
+<!-- SLIDE 60: Ready for Level 3 -->
+<div class="slide slide-dark" data-notes="А теперь — для тех, кто готов строить свою систему. Начальные условия: VS Code установлен, подписка Claude активна. Если нет — не страшно, это настраивается за 10 минут. Всё есть в этой презентации — ссылки, шаги, пояснения.">
+  <div class="slide-content" style="text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:60vh;">
+    <div class="anim"><span class="level-badge level-3" style="background: #ffffff; color: #1d1d1f; border: none;">Уровень 3</span></div>
+    <h2 class="anim anim-d1" style="margin-bottom:16px;">Дорожная карта<br>перехода на уровень 3</h2>
+    <p class="anim anim-d2" style="margin-bottom:24px;">6 шагов от установки до автономного агента</p>
+    <div class="anim anim-d3 flow" style="justify-content:center;">
+      <span class="flow-step active">Мозг</span>
+      <span class="flow-arrow">&rarr;</span>
+      <span class="flow-step active">Контекст</span>
+      <span class="flow-arrow">&rarr;</span>
+      <span class="flow-step active">MCP</span>
+      <span class="flow-arrow">&rarr;</span>
+      <span class="flow-step active">Скилы</span>
+      <span class="flow-arrow">&rarr;</span>
+      <span class="flow-step active">Авто</span>
+      <span class="flow-arrow">&rarr;</span>
+      <span class="flow-step active">Масштаб</span>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 61: L3 Step 1 — Connect the brain -->
+<div class="slide" data-notes="Шаг первый — подключить мозг. Установите расширение Claude Code в VS Code. Авторизуйтесь. Это буквально пара кликов. После этого у вас внутри редактора кода живёт агент, который может читать файлы, писать код, выполнять команды, искать в интернете. Но пока он — умный незнакомец. Тот самый уровень 1. Давайте это исправим.">
+  <div class="slide-content">
+    <div class="anim"><span class="level-badge level-3">Уровень 3 &mdash; Шаг 1</span></div>
+    <h2 class="anim anim-d1" style="margin-top:12px;">Подключить <span class="accent">мозг</span></h2>
+    <div class="anim anim-d2 card" style="margin-top:16px;">
+      <div style="display:flex; align-items:center; gap:16px;">
+        <span style="font-size:2.5rem;">&#129504;</span>
+        <div>
+          <h3>VS Code + <a href="https://claude.ai/code" target="_blank">Claude Code</a></h3>
+          <p class="small">Установить расширение, авторизоваться &mdash; пара кликов</p>
+        </div>
+      </div>
+    </div>
+    <div class="anim anim-d3" style="margin-top:16px;">
+      <p class="small dim">Что умеет из коробки:</p>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
+        <span class="tag tag-accent">Читать файлы</span>
+        <span class="tag tag-accent">Писать код</span>
+        <span class="tag tag-accent">Команды в терминале</span>
+        <span class="tag tag-accent">Поиск в интернете</span>
+      </div>
+    </div>
+    <div class="anim anim-d4 warn-card">
+      <p>Пока он &mdash; <strong>умный незнакомец</strong>. Давайте это исправим.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 62: L3 Step 2 — CLAUDE.md -->
+<div class="slide" data-notes="Шаг второй — дать контекст. Создайте файл CLAUDE.md. Помните фреймворк из предыдущей части? Инструкция сотруднику? Вот это оно и есть. Только инструкция — агенту. Что написать: Кто вы. Имя, роль, чем занимаетесь. Как общаться. Язык, тон, стиль. Правила. Что можно делать свободно, о чём спрашивать, что запрещено. Контекст. Ваши проекты, текущие задачи, предпочтения. Это обычный текст. Не код. Пишете на человеческом языке, как писали бы записку коллеге. После этого — ваш агент уже не незнакомец. Он знает, кто вы и как с вами работать. Это уже огромная разница.">
+  <div class="slide-content">
+    <div class="anim"><span class="level-badge level-3">Уровень 3 &mdash; Шаг 2</span></div>
+    <h2 class="anim anim-d1" style="margin-top:12px;">Дать контекст &mdash; <span class="accent">CLAUDE.md</span></h2>
+    <p class="anim anim-d2" style="margin-bottom:16px;">Инструкция сотруднику = инструкция агенту</p>
+    <div class="anim anim-d3 grid-2">
+      <div class="card" style="text-align:center;">
+        <p style="font-size:1.8rem; margin-bottom:8px;">&#128100;</p>
+        <h3 class="small">Кто вы</h3>
+        <p class="xsmall dim">Имя, роль, чем занимаетесь</p>
+      </div>
+      <div class="card" style="text-align:center;">
+        <p style="font-size:1.8rem; margin-bottom:8px;">&#128172;</p>
+        <h3 class="small">Как общаться</h3>
+        <p class="xsmall dim">Язык, тон, стиль</p>
+      </div>
+      <div class="card" style="text-align:center;">
+        <p style="font-size:1.8rem; margin-bottom:8px;">&#9989;</p>
+        <h3 class="small">Правила</h3>
+        <p class="xsmall dim">Что можно, о чём спрашивать, что нельзя</p>
+      </div>
+      <div class="card" style="text-align:center;">
+        <p style="font-size:1.8rem; margin-bottom:8px;">&#128204;</p>
+        <h3 class="small">Контекст</h3>
+        <p class="xsmall dim">Проекты, задачи, предпочтения</p>
+      </div>
+    </div>
+    <div class="anim anim-d4 success-card">
+      <p class="small">Обычный текст на человеческом языке. Как записка коллеге &mdash; не код.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 63: L3 Step 3 — MCP connectors -->
+<div class="slide" data-notes="Шаг третий — подключить инструменты. MCP-серверы. Не все сразу. По одному. Начните с того, что используете каждый день. Для большинства это календарь. Подключили Google Calendar — и агент видит ваше расписание, может создавать встречи, находить свободные слоты. Потом — таск-менеджер. Notion, Todoist, что у вас есть. Агент видит задачи, может создавать новые, отмечать выполненные. Потом — что важнее всего для вас. Почта, файлы, Slack, GitHub — зависит от вашей работы. Каждый новый коннектор — это новая «рука» для агента. Но добавляйте по одному. Попользовались неделю — добавили следующий.">
+  <div class="slide-content">
+    <div class="anim"><span class="level-badge level-3">Уровень 3 &mdash; Шаг 3</span></div>
+    <h2 class="anim anim-d1" style="margin-top:12px;">Воткнуть коннекторы &mdash; <span class="accent">MCP</span></h2>
+    <p class="anim anim-d2" style="margin-bottom:16px;">По одному. Не все сразу.</p>
+    <div class="anim anim-d3 timeline">
+      <div class="timeline-item highlight">
+        <div class="timeline-date">Неделя 1</div>
+        <div class="timeline-text"><strong>Календарь</strong> &mdash; расписание, встречи, свободные слоты</div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-date">Неделя 2</div>
+        <div class="timeline-text"><strong>Таск-менеджер</strong> &mdash; Notion, Todoist, Linear</div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-date">Неделя 3</div>
+        <div class="timeline-text"><strong>Что важнее всего</strong> &mdash; Почта, Slack, GitHub, файлы</div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-date">Неделя 4+</div>
+        <div class="timeline-text"><strong>Расширяйте</strong> &mdash; каждый коннектор = новая &laquo;рука&raquo;</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 64: L3 Step 4 — Skills -->
+<div class="slide" data-notes="Шаг четвёртый — научить скилам. Повторяемые команды. Помните эволюцию: запрос → скил → обязанность? Вот мы на этапе «скил». Вы заметили, что каждое утро просите агента одно и то же? Сохраните как скил. /day — и утренний брифинг готов. /meeting — обработка встречи. /content — помощь с текстом. Скил — это просто файл с инструкцией. Как рецепт: шаги записаны, выполняются каждый раз одинаково хорошо.">
+  <div class="slide-content">
+    <div class="anim"><span class="level-badge level-3">Уровень 3 &mdash; Шаг 4</span></div>
+    <h2 class="anim anim-d1" style="margin-top:12px;">Научить <span class="accent">скилам</span></h2>
+    <p class="anim anim-d2" style="margin-bottom:16px;">Повторяемые команды &mdash; рецепты для агента</p>
+    <div class="anim anim-d3" style="display:flex; flex-direction:column; gap:10px;">
+      <div class="task-example"><span class="mono accent">/day</span> &mdash; утренний брифинг: календарь + почта + задачи</div>
+      <div class="task-example"><span class="mono accent">/meeting</span> &mdash; обработка встречи: транскрипт + саммари + задачи</div>
+      <div class="task-example"><span class="mono accent">/content</span> &mdash; помощь с текстом: в нужном тоне и стиле</div>
+      <div class="task-example"><span class="mono accent">/report</span> &mdash; еженедельный отчёт: данные + метрики + оформление</div>
+    </div>
+    <div class="anim anim-d4 explain-card">
+      <h3>Скил = файл с инструкцией</h3>
+      <p>Шаги записаны &mdash; выполняются каждый раз одинаково хорошо</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 65: L3 Steps 5-6 — Automation & Scale -->
+<div class="slide" data-notes="Шаг пятый — автоматизация. Плановые задачи. Утренний брифинг в 8:00. Обработка встречи сразу после звонка. Еженедельный дайджест в пятницу. Шаг шестой — масштабирование. Суб-агенты, Teams. Агент создаёт помощников для сложных задач. Но это уже продвинутый уровень — придёт со временем. Главное: не за один день. Шаги 1–2 — попользуйтесь неделю. Почувствуйте, как меняется работа. Потом шаг 3. Потом 4. Постепенно. Каждый шаг опирается на предыдущий.">
+  <div class="slide-content">
+    <div class="anim"><span class="level-badge level-3">Уровень 3 &mdash; Шаги 5&ndash;6</span></div>
+    <h2 class="anim anim-d1" style="margin-top:12px;">Автоматизация и масштаб</h2>
+    <div class="anim anim-d2 grid-2" style="margin-top:20px;">
+      <div class="card" style="border-left: 3px solid var(--accent);">
+        <h3>Шаг 5: Автоматизация</h3>
+        <p class="small" style="margin-top:8px;">Плановые задачи без напоминания:</p>
+        <ul style="margin-top:8px; padding-left:18px;">
+          <li class="small">Утренний брифинг в 8:00</li>
+          <li class="small">Обработка встречи после звонка</li>
+          <li class="small">Еженедельный дайджест в пятницу</li>
+        </ul>
+      </div>
+      <div class="card" style="border-left: 3px solid var(--green);">
+        <h3>Шаг 6: Масштабирование</h3>
+        <p class="small" style="margin-top:8px;">Суб-агенты и Teams:</p>
+        <ul style="margin-top:8px; padding-left:18px;">
+          <li class="small">Агент создаёт помощников</li>
+          <li class="small">Сложные задачи делятся</li>
+          <li class="small">Параллельная работа</li>
+        </ul>
+      </div>
+    </div>
+    <div class="anim anim-d3 explain-card">
+      <h3>Не за один день</h3>
+      <p>Шаги 1&ndash;2: неделя. Шаг 3: ещё неделя. Постепенно. Каждый шаг опирается на предыдущий.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 66: Local vs VPS -->
+<div class="slide" data-notes="Важный момент, который стоит понимать. Агент может жить в двух местах. Локально — на вашем компьютере. Открыли VS Code, запустили Claude Code — агент работает. Закрыли ноутбук — агент спит. Это самый простой вариант для старта. Никаких дополнительных настроек. На виртуальном сервере (VPS). Это отдельный компьютер в облаке, который работает 24/7. Агент всегда на связи — можно написать ему в Telegram с телефона в любое время. Он может выполнять задачи по расписанию, даже когда ваш ноутбук выключен. Утренний брифинг в 8:00, мониторинг почты, напоминания — всё это возможно только на сервере. Кстати, помните хайп вокруг OpenClaw? Когда он завирусился, люди массово скупали Mac Mini — чтобы агент работал круглосуточно. Интернет был полон фотографий: вот мой новый Mac Mini для бота! Почему Mac Mini? Потому что OpenClaw изначально был заточен под macOS — iMessage, Apple Calendar, системные интеграции. Люди решили: нужен отдельный компьютер, который всегда включён. Но это не обязательно. Виртуальный сервер в облаке — за 5-10 евро в месяц — делает ровно то же самое. Работает 24/7, доступен отовсюду, не шумит на столе. Моя система работает именно так: агент живёт на сервере за 5 евро, я общаюсь с ним через Telegram. Никакого Mac Mini. Но это — шаг 5-6. Начинайте локально, на своём компьютере.">
+  <div class="slide-content">
+    <div class="anim section-label">Где живёт агент</div>
+    <h2 class="anim anim-d1">Локально <span class="dim">vs</span> Сервер</h2>
+    <div class="anim anim-d2 grid-2" style="margin-top:20px;">
+      <div class="card">
+        <h3 style="text-align:center; margin-bottom:12px;">&#128187; Локально</h3>
+        <table class="data-table" style="margin:0;">
+          <tbody>
+            <tr><td>Старт</td><td>Открыл VS Code &mdash; работает</td></tr>
+            <tr><td>Режим</td><td>Закрыл ноутбук &mdash; спит</td></tr>
+            <tr><td>Настройка</td><td>Ноль</td></tr>
+            <tr><td>Стоимость</td><td>Бесплатно</td></tr>
+          </tbody>
+        </table>
+        <div class="success-card" style="margin-top:12px;">
+          <p class="xsmall"><strong>Для старта &mdash; идеально</strong></p>
+        </div>
+      </div>
+      <div class="card" style="border-color:var(--accent-border);">
+        <h3 style="text-align:center; margin-bottom:12px;">&#9729;&#65039; Сервер (VPS)</h3>
+        <table class="data-table" style="margin:0;">
+          <tbody>
+            <tr><td>Режим</td><td>Работает 24/7</td></tr>
+            <tr><td>Доступ</td><td>Telegram с телефона</td></tr>
+            <tr><td>Расписание</td><td>Брифинг в 8:00, дайджест в пт</td></tr>
+            <tr><td>Стоимость</td><td>5&ndash;10 &euro;/мес</td></tr>
+          </tbody>
+        </table>
+        <div class="explain-card" style="margin-top:12px;">
+          <p class="xsmall">Можно Mac Mini, но облако делает то же самое</p>
+        </div>
+      </div>
+    </div>
+    <p class="anim anim-d3 dim small" style="margin-top:12px; text-align:center;">Начинайте локально. Сервер &mdash; это шаги 5&ndash;6.</p>
+  </div>
+</div>
+
+<!-- SLIDE 68: Q&A -->
+<div class="slide" data-notes="Давайте остановимся. Это была плотная часть. Много конкретики. Напишите в чат: какой из шести шагов фреймворка кажется самым полезным лично для вас? [Пауза, читаем ответы] И второй вопрос: что непонятно? Что хотите разобрать подробнее? [Q&amp;A — 5–7 минут] Частый вопрос: «А это правда безопасно — давать агенту доступ к почте и календарю?» Ответ: именно поэтому мы говорили про подход «по шагам». Вы контролируете каждое подключение. Агент не может сделать ничего, что вы ему явно не разрешили. И помните пример с OpenClaw — разница именно в подходе к безопасности.">
+  <div class="slide-content" style="text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:60vh;">
+    <div class="anim" style="font-size:4rem; margin-bottom:16px;">&#10067;</div>
+    <h2 class="anim anim-d1">Вопросы</h2>
+    <p class="anim anim-d2" style="margin-top:12px; font-size:1.2rem; color:var(--text-secondary);">Какой из 6 шагов кажется самым полезным лично для вас?</p>
+    <div class="anim anim-d3 explain-card" style="max-width:600px; margin-top:24px; text-align:left;">
+      <h3>Частый вопрос: безопасность</h3>
+      <p>&laquo;Давать агенту доступ к почте и календарю &mdash; безопасно?&raquo;<br>Вы контролируете каждое подключение. Агент не может сделать ничего, что вы ему явно не разрешили.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 69: Transition to finale -->
+<div class="slide" data-notes="Итак. У вас теперь есть: Понимание, что возможно (блок 1). Понимание, как это устроено (блок 2). Конкретный план, что делать (блок 3). Осталось самое важное: что дальше. Как не потерять этот импульс. И куда идти, если хотите углубиться.">
+  <div class="slide-content" style="text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:60vh;">
+    <div class="anim section-label">Итого</div>
+    <h2 class="anim anim-d1" style="margin-bottom:24px;">У вас теперь есть:</h2>
+    <div class="anim anim-d2" style="display:flex; flex-direction:column; gap:12px; max-width:500px; width:100%;">
+      <div class="card" style="text-align:left; display:flex; align-items:center; gap:14px;">
+        <span class="tag tag-accent" style="white-space:nowrap;">Блок 1</span>
+        <span style="font-size:1.1rem; color:var(--text);">Понимание, что возможно</span>
+      </div>
+      <div class="card" style="text-align:left; display:flex; align-items:center; gap:14px;">
+        <span class="tag tag-blue" style="white-space:nowrap;">Блок 2</span>
+        <span style="font-size:1.1rem; color:var(--text);">Понимание, как это устроено</span>
+      </div>
+      <div class="card" style="text-align:left; display:flex; align-items:center; gap:14px; border-color:var(--green-border);">
+        <span class="tag tag-green" style="white-space:nowrap;">Блок 3</span>
+        <span style="font-size:1.1rem; color:var(--text);">Конкретный план, что делать</span>
+      </div>
+    </div>
+    <p class="anim anim-d3" style="margin-top:28px; font-size:1.3rem; color:var(--text-secondary);">Осталось разобраться что дальше :)</p>
+  </div>
+</div>
+
+<!-- ==========================================
+<!-- BLOCK 4: SLIDES 70-77                      -->
+<!-- ==========================================
+
+<!-- SLIDE 70: Block title "Что дальше" -->
+<div class="slide slide-dark" data-notes="Мы на финишной прямой. Давайте подведём итоги.">
+  <div class="slide-content" style="text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:70vh;">
+    <div class="anim section-label">Блок 4</div>
+    <div class="anim anim-d1 section-title">Что дальше</div>
+    <div class="anim anim-d2 section-subtitle">Ресурсы и следующие шаги</div>
+  </div>
+</div>
+
+<!-- SLIDE 74: Клуб практиков -->
+<div class="slide" data-notes="Судя по ответам &mdash; [реагируем на реальные ответы из чата]. Я планирую формат продолжения &mdash; клуб практиков. Расскажу коротко, как это устроено. Встречи раз в две недели. На каждой &mdash; один конкретный сценарий. Не теория, а практика: берём задачу &mdash; и внедряем. Обработка встреч. Планирование дня. Контент-пайплайн. Исследование. Работа с почтой. Участники голосуют, что внедряем следующим. Кто-то говорит &laquo;мне нужно вот это&raquo; &mdash; если большинство тоже хочет, берём в работу. Каждый шаг &mdash; практически, под руководством, с работающим результатом на выходе. Плюс: готовые шаблоны и рецепты, разбор кейсов участников, сессии &laquo;спроси меня что угодно&raquo;.">
+  <div class="slide-content">
+    <h2 class="anim" style="text-align:center;">Клуб практиков</h2>
+    <p class="anim anim-d1 dim" style="text-align:center; margin-bottom:24px;">Формат продолжения</p>
+    <div class="anim anim-d2 grid-3">
+      <div class="card" style="text-align:center;">
+        <p style="font-size:2rem; margin-bottom:8px;">&#128197;</p>
+        <h3>Формат</h3>
+        <p class="small">Встречи раз в <strong>2 недели</strong>. Один конкретный сценарий на каждой</p>
+      </div>
+      <div class="card" style="text-align:center;">
+        <p style="font-size:2rem; margin-bottom:8px;">&#128736;</p>
+        <h3>Практика</h3>
+        <p class="small">Берём задачу &mdash; внедряем. Встречи, планирование, контент, почта</p>
+      </div>
+      <div class="card" style="text-align:center;">
+        <p style="font-size:2rem; margin-bottom:8px;">&#127919;</p>
+        <h3>Результат</h3>
+        <p class="small">Работающее решение на выходе. Участники голосуют за следующую тему</p>
+      </div>
+    </div>
+    <div class="anim anim-d3 explain-card" style="margin-top:20px;">
+      <h3>Также в клубе</h3>
+      <p>Готовые шаблоны и рецепты &middot; Разбор кейсов участников &middot; Сессии &laquo;спроси меня что угодно&raquo;</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 75: Персональный менторинг -->
+<div class="slide" data-notes="Для тех, кому нужно индивидуально &mdash; есть формат менторинга. Вместе строим систему конкретно под ваши задачи. Один на один. Но это для тех, кому важна скорость и персональный подход. Упоминаю коротко &mdash; если интересно, напишите мне после воркшопа.">
+  <div class="slide-content" style="text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:60vh;">
+    <h2 class="anim">Персональный менторинг</h2>
+    <p class="anim anim-d1 dim" style="margin-bottom:32px;">Для тех, кому важна скорость</p>
+    <div class="anim anim-d2 card" style="max-width:600px; text-align:center;">
+      <p style="font-size:2rem; margin-bottom:12px;">&#129309;</p>
+      <h3>Один на один</h3>
+      <p class="small" style="margin-top:8px;">Строим систему конкретно под ваши задачи.<br>Персональный подход и результат быстрее.</p>
+      <div style="margin-top:16px;">
+        <p class="small dim">Интересно? Напишите мне после воркшопа</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 76: Что вы получаете после воркшопа -->
+<div class="slide" data-notes="Итак, что у вас будет: Эта презентация &mdash; она же ваш гайд. Я выложу её в открытый доступ. Открываете, кликаете по ссылкам, проходите шаг за шагом. Всё, о чём мы говорили &mdash; со ссылками на документацию и инструменты. Запись воркшопа &mdash; пришлю всем участникам. Можно пересмотреть любой момент. Контакт для клуба и менторинга &mdash; напишите мне, расскажу детали.">
+  <div class="slide-content">
+    <h2 class="anim" style="text-align:center;">Что вы получаете</h2>
+    <p class="anim anim-d1 dim" style="text-align:center; margin-bottom:28px;">После воркшопа</p>
+    <div style="max-width:750px; margin:0 auto;">
+      <div class="anim anim-d2 channel-card">
+        <div class="channel-icon">&#128218;</div>
+        <div>
+          <div class="channel-name">Презентация-гайд</div>
+          <div class="channel-desc">Открытый доступ. Ссылки на документацию и инструменты. Проходите шаг за шагом</div>
+        </div>
+      </div>
+      <div class="anim anim-d3 channel-card">
+        <div class="channel-icon">&#127909;</div>
+        <div>
+          <div class="channel-name">Запись воркшопа</div>
+          <div class="channel-desc">Пришлю всем участникам. Можно пересмотреть любой момент</div>
+        </div>
+      </div>
+      <div class="anim anim-d4 channel-card">
+        <div class="channel-icon">&#128172;</div>
+        <div>
+          <div class="channel-name">Контакт для продолжения</div>
+          <div class="channel-desc">Клуб практиков, менторинг &mdash; напишите, расскажу детали</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE 77: Финал -->
+<div class="slide" data-notes="Напоследок. Помните, с чего мы начали? AI перестал быть чатом. Он стал рабочей средой. Вы теперь знаете, как эта среда устроена. Знаете, из каких компонентов состоит агент. Видели, как это работает вживую. Получили фреймворк и конкретные шаги. Единственное, что осталось &mdash; начать. Откройте презентацию, выберите свой уровень, сделайте первый шаг. Не завтра &mdash; сегодня вечером. 15 минут &mdash; и вы уже на пути. Спасибо, что были со мной эти три часа. Если остались вопросы &mdash; пишите. Я на связи. [Финальный Q&amp;A на оставшееся время]">
+  <div class="slide-content" style="text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:70vh;">
+    <div class="anim big-quote" style="max-width:850px; margin-bottom:32px;">
+      AI перестал быть чатом.<br><span class="accent">Он стал рабочей средой.</span>
+    </div>
+    <div class="anim anim-d1 divider" style="width:80px; margin:0 auto 28px;"></div>
+    <div class="anim anim-d3" style="margin-bottom:20px;">
+      <p style="font-size:1.1rem; color:var(--text); font-weight:500; margin-bottom:4px;">Наталья Кистер</p>
+    </div>
+    <div class="anim anim-d4" style="display:flex; gap:16px; flex-wrap:wrap; justify-content:center;">
+      <a href="https://nataliakister.com" target="_blank" rel="noopener" style="font-size:1rem;">nataliakister.com</a>
+      <span class="dim">&middot;</span>
+      <a href="https://t.me/natalia_kister" target="_blank" rel="noopener" style="font-size:1rem;">Telegram: @natalia_kister</a>
+    </div>
+    <p class="anim anim-d5 dim small" style="margin-top:28px;">Спасибо, что были со мной эти три часа</p>
+  </div>
+</div>
+
+<script>
+// ============================================
+// Slide navigation
+// ============================================
+const slides = document.querySelectorAll('.slide');
+const totalSlides = slides.length;
+let currentSlide = 0;
+let isAnimating = false;
+
+// BroadcastChannel for speaker view sync
+const channel = new BroadcastChannel('presentation_sync');
+
+// Timing map: [lastSlideIndex, blockName, plannedMinutes, cumulativeMinutes]
+const timingBlocks = [
+  [15, 'Блок 1: Хук + Уровни', 25, 25],
+  [25, 'Блок 1.4: Use Cases', 15, 40],
+  [26, 'ПЕРЕРЫВ', 10, 50],
+  [47, 'Блок 2: Анатомия + Демо', 45, 95],
+  [48, 'ПЕРЕРЫВ', 10, 105],
+  [68, 'Блок 3: Первые шаги', 30, 135],
+  [76, 'Блок 4: Закрытие', 15, 150]
+];
+
+function getTimingForSlide(slideIdx) {
+  let firstSlide = 0;
+  for (const [lastSlide, name, dur, cumul] of timingBlocks) {
+    if (slideIdx <= lastSlide) {
+      const totalInBlock = lastSlide - firstSlide + 1;
+      const posInBlock = slideIdx - firstSlide + 1;
+      return { block: name, blockMin: dur, cumulMin: cumul, posInBlock, totalInBlock };
+    }
+    firstSlide = lastSlide + 1;
+  }
+  const last = timingBlocks[timingBlocks.length - 1];
+  const firstOfLast = timingBlocks.length > 1 ? timingBlocks[timingBlocks.length - 2][0] + 1 : 0;
+  return { block: last[1], blockMin: last[2], cumulMin: last[3], posInBlock: slideIdx - firstOfLast + 1, totalInBlock: last[0] - firstOfLast + 1 };
+}
+
+// Collect all notes for speaker view
+const allNotes = [];
+const allTitles = [];
+slides.forEach((s, i) => {
+  allNotes.push(s.getAttribute('data-notes') || '(no notes)');
+  const el = s.querySelector('h1, h2, .cover-title, .section-title');
+  allTitles.push(el ? el.textContent : 'Slide ' + (i + 1));
+});
+
+// Build nav dots with block separators
+const navDots = document.getElementById('navDots');
+const dotEls = []; // separate array to keep index→dot mapping correct
+const BLOCK_SEP_AFTER = [23, 39]; // add separator AFTER these 0-based slide indices
+const BLOCK_LABELS = ['Б1', 'Б2', 'Б3'];
+let blockLabelIdx = 0;
+const addBlockSep = (label) => {
+  const sep = document.createElement('div');
+  sep.className = 'nav-block-sep';
+  const lbl = document.createElement('span');
+  lbl.className = 'nav-block-label'; lbl.textContent = label;
+  sep.appendChild(lbl); navDots.appendChild(sep);
+};
+addBlockSep(BLOCK_LABELS[blockLabelIdx]);
+for (let i = 0; i < totalSlides; i++) {
+  const dot = document.createElement('button');
+  dot.className = 'nav-dot' + (i === 0 ? ' active' : '');
+  dot.addEventListener('click', () => goToSlide(i));
+  navDots.appendChild(dot); dotEls.push(dot);
+  if (BLOCK_SEP_AFTER.includes(i) && blockLabelIdx + 1 < BLOCK_LABELS.length) {
+    blockLabelIdx++; addBlockSep(BLOCK_LABELS[blockLabelIdx]);
+  }
+}
+
+function updateProgress() {
+  const pct = totalSlides > 1 ? (currentSlide / (totalSlides - 1)) * 100 : 0;
+  document.getElementById('progressBar').style.width = pct + '%';
+}
+function updateDarkSlideUI() {
+  const isDark = slides[currentSlide].classList.contains('slide-dark');
+  document.body.classList.toggle('on-dark-slide', isDark);
+}
+updateProgress();
+updateDarkSlideUI();
+
+function goToSlide(n) {
+  if (n < 0 || n >= totalSlides || n === currentSlide || isAnimating) return;
+  isAnimating = true;
+
+  slides[currentSlide].classList.remove('active');
+  slides[n].classList.add('active');
+
+  dotEls[currentSlide].classList.remove('active');
+  dotEls[n].classList.add('active');
+  currentSlide = n;
+  document.getElementById('slideCounter').textContent = `${currentSlide + 1} / ${totalSlides}`;
+  updateProgress();
+  updateDarkSlideUI();
+
+  // Broadcast to speaker view
+  const timing = getTimingForSlide(currentSlide);
+  channel.postMessage({
+    type: 'slideChanged',
+    slide: currentSlide,
+    total: totalSlides,
+    notes: allNotes[currentSlide],
+    title: allTitles[currentSlide],
+    nextTitle: currentSlide + 1 < totalSlides ? allTitles[currentSlide + 1] : null,
+    block: timing.block,
+    blockMin: timing.blockMin,
+    cumulMin: timing.cumulMin,
+    posInBlock: timing.posInBlock,
+    totalInBlock: timing.totalInBlock
+  });
+
+  setTimeout(() => { isAnimating = false; }, 520);
+}
+
+// Listen for navigation commands FROM speaker view
+channel.addEventListener('message', (e) => {
+  if (e.data.type === 'navigate') {
+    goToSlide(e.data.slide);
+  }
+});
+
+// Keyboard navigation
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+    e.preventDefault(); goToSlide(currentSlide + 1);
+  } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+    e.preventDefault(); goToSlide(currentSlide - 1);
+  } else if (e.key === ' ') {
+    e.preventDefault(); goToSlide(currentSlide + 1);
+  } else if (e.key === 'Home') {
+    goToSlide(0);
+  } else if (e.key === 'End') {
+    goToSlide(totalSlides - 1);
+  } else if (e.key === 's' || e.key === 'S') {
+    e.preventDefault(); openSpeakerView();
+  }
+});
+
+// Trackpad / mouse wheel
+let wheelDelta = 0, wheelTimer = null, wheelCooldown = false;
+document.addEventListener('wheel', function(e) {
+  e.preventDefault();
+  if (wheelCooldown) return;
+  const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+  wheelDelta += delta;
+  clearTimeout(wheelTimer);
+  wheelTimer = setTimeout(function() {
+    if (Math.abs(wheelDelta) > 30) {
+      wheelCooldown = true;
+      if (wheelDelta > 0) goToSlide(currentSlide + 1);
+      else goToSlide(currentSlide - 1);
+      setTimeout(function() { wheelCooldown = false; }, 600);
+    }
+    wheelDelta = 0;
+  }, 80);
+}, {passive: false});
+
+// Touch swipe
+let touchSX = 0, touchSY = 0;
+document.addEventListener('touchstart', function(e) {
+  touchSX = e.touches[0].clientX; touchSY = e.touches[0].clientY;
+}, {passive: true});
+document.addEventListener('touchend', function(e) {
+  const dx = e.changedTouches[0].clientX - touchSX;
+  const dy = e.changedTouches[0].clientY - touchSY;
+  if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+    if (dx < 0) goToSlide(currentSlide + 1);
+    else goToSlide(currentSlide - 1);
+  }
+}, {passive: true});
+
+// ============================================
+// Speaker View
+// ============================================
+function openSpeakerView() {
+  const sv = window.open('', 'speaker_view',
+    'width=1100,height=750,menubar=no,toolbar=no,location=no,status=no');
+
+  sv.document.write(`<!DOCTYPE html>
+<html lang="ru"><head><meta charset="UTF-8"><title>Speaker View</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:#1a1a2e;color:#e0e0e0;padding:20px;height:100vh;display:flex;flex-direction:column}
+.sv-header{display:flex;justify-content:space-between;align-items:center;padding:0 0 16px 0;border-bottom:1px solid rgba(255,255,255,0.1);margin-bottom:16px}
+.sv-timer{font-size:2rem;font-weight:300;color:#da7756;font-variant-numeric:tabular-nums}
+.sv-slide-num{font-size:1rem;color:rgba(255,255,255,0.5)}
+.sv-controls{display:flex;gap:8px}
+.sv-btn{padding:8px 16px;border:1px solid rgba(255,255,255,0.2);border-radius:8px;background:transparent;color:#e0e0e0;font-family:'Inter',sans-serif;font-size:0.85rem;cursor:pointer;transition:all 0.2s}
+.sv-btn:hover{background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.3)}
+.sv-body{display:flex;gap:20px;flex:1;min-height:0}
+.sv-previews{display:flex;flex-direction:column;gap:12px;width:40%}
+.sv-preview-label{font-size:0.7rem;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.4);margin-bottom:4px}
+.sv-preview{flex:1;border-radius:8px;overflow:hidden;border:2px solid rgba(255,255,255,0.1);background:#fff;display:flex;align-items:center;justify-content:center;padding:16px}
+.sv-preview.current{border-color:#da7756}
+.sv-preview-text{font-family:'Inter',sans-serif;font-size:14px;color:#171717;text-align:center}
+.sv-preview-text strong{display:block;font-size:11px;color:#999;margin-bottom:6px}
+.sv-notes{flex:1;overflow-y:auto;padding:20px 24px;background:rgba(255,255,255,0.05);border-radius:8px;font-size:1.05rem;line-height:1.7;color:#d0d0d0}
+.sv-notes p{margin-bottom:12px}.sv-notes p:last-child{margin-bottom:0}
+.sv-notes::-webkit-scrollbar{width:6px}
+.sv-notes::-webkit-scrollbar-track{background:transparent}
+.sv-notes::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.2);border-radius:3px}
+.sv-click-marker{color:#da7756;font-weight:600;font-size:0.85em;background:rgba(218,119,86,0.15);padding:1px 6px;border-radius:4px}
+.sv-timing{display:flex;gap:16px;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.1);margin-bottom:12px;flex-wrap:wrap}
+.sv-timing-block{font-size:0.85rem;color:rgba(255,255,255,0.7);font-weight:500}
+.sv-timing-plan{font-size:0.8rem;color:rgba(255,255,255,0.4)}
+.sv-timing-status{font-size:0.8rem;padding:3px 10px;border-radius:6px;font-weight:600}
+.sv-timing-ok{background:rgba(22,163,74,0.2);color:#4ade80}
+.sv-timing-warn{background:rgba(234,179,8,0.2);color:#facc15}
+.sv-timing-over{background:rgba(220,38,38,0.2);color:#f87171}
+</style></head><body>
+<div class="sv-header">
+  <div>
+    <div class="sv-timer" id="svTimer">00:00:00</div>
+    <div class="sv-slide-num" id="svSlideNum">Slide 1 / ${totalSlides}</div>
+  </div>
+  <div class="sv-controls">
+    <button class="sv-btn" id="btnPrev">&#8592; Prev</button>
+    <button class="sv-btn" id="btnNext">Next &#8594;</button>
+    <button class="sv-btn" id="svTimerBtn">Start Timer</button>
+  </div>
+</div>
+<div class="sv-timing" id="svTiming">
+  <span class="sv-timing-block" id="svBlockName">&#8212;</span>
+  <span class="sv-timing-plan" id="svBlockPlan"></span>
+  <span class="sv-timing-status sv-timing-ok" id="svTimingStatus">Start timer</span>
+</div>
+<div class="sv-body">
+  <div class="sv-previews">
+    <div><div class="sv-preview-label">Current slide</div><div class="sv-preview current" id="svCurrent"><div class="sv-preview-text"></div></div></div>
+    <div><div class="sv-preview-label">Next slide</div><div class="sv-preview" id="svNext"><div class="sv-preview-text"></div></div></div>
+  </div>
+  <div class="sv-notes" id="svNotes"></div>
+</div>
+<script>
+const ch = new BroadcastChannel('presentation_sync');
+let curSlide = 0;
+let total = ${totalSlides};
+
+// Navigation buttons send commands to main window
+document.getElementById('btnPrev').addEventListener('click', () => {
+  ch.postMessage({type:'navigate', slide: curSlide - 1});
+});
+document.getElementById('btnNext').addEventListener('click', () => {
+  ch.postMessage({type:'navigate', slide: curSlide + 1});
+});
+
+// Keyboard in speaker view
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'ArrowDown') {
+    e.preventDefault();
+    ch.postMessage({type:'navigate', slide: curSlide + 1});
+  } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    ch.postMessage({type:'navigate', slide: curSlide - 1});
+  }
+});
+
+// Timing state
+let curBlock = '', curBlockMin = 0, curCumulMin = 0, curPosInBlock = 0, curTotalInBlock = 0;
+
+// Receive updates from main window
+ch.addEventListener('message', (e) => {
+  if (e.data.type === 'slideChanged') {
+    curSlide = e.data.slide;
+    total = e.data.total;
+    curBlock = e.data.block || '';
+    curBlockMin = e.data.blockMin || 0;
+    curCumulMin = e.data.cumulMin || 0;
+    curPosInBlock = e.data.posInBlock || 0;
+    curTotalInBlock = e.data.totalInBlock || 0;
+    document.getElementById('svSlideNum').textContent = 'Slide ' + (curSlide+1) + ' / ' + total;
+    document.getElementById('svCurrent').querySelector('.sv-preview-text').innerHTML = '<strong>SLIDE ' + (curSlide+1) + '</strong>' + e.data.title;
+    if (e.data.nextTitle) {
+      document.getElementById('svNext').querySelector('.sv-preview-text').innerHTML = '<strong>SLIDE ' + (curSlide+2) + '</strong>' + e.data.nextTitle;
+    } else {
+      document.getElementById('svNext').querySelector('.sv-preview-text').innerHTML = '<strong>END</strong>End of presentation';
+    }
+    const notesEl = document.getElementById('svNotes');
+    const rawText = e.data.notes;
+    const noteParts = rawText.split(/(\\[[^\\]]+\\])/);
+    let notesHtml = '';
+    for (const notePart of noteParts) {
+      if (/^\\[[^\\]]+\\]$/.test(notePart)) {
+        notesHtml += '<p><span class="sv-click-marker">[' + notePart.slice(1,-1).toUpperCase() + ']</span></p>';
+      } else if (notePart.trim()) {
+        const sents = notePart.split('. ').filter(function(s){return s.trim();});
+        for (var si = 0; si < sents.length; si += 2) {
+          var chunk = sents.slice(si, si+2).join('. ').trim();
+          if (chunk && !chunk.endsWith('.') && si+2 < sents.length) chunk += '.';
+          if (chunk) notesHtml += '<p>' + chunk + '</p>';
+        }
+      }
+    }
+    notesEl.innerHTML = notesHtml || '<p>' + rawText + '</p>';
+    notesEl.scrollTop = 0;
+    // Update timing display
+    document.getElementById('svBlockName').textContent = curBlock + '  \u2014  слайд ' + curPosInBlock + ' из ' + curTotalInBlock;
+    document.getElementById('svBlockPlan').textContent = curBlockMin + ' мин на блок | К этому моменту: ' + curCumulMin + ' мин';
+    updateTimingStatus();
+  }
+});
+
+function updateTimingStatus() {
+  const el = document.getElementById('svTimingStatus');
+  if (!timerRunning || !timerStart) {
+    el.textContent = 'Старт таймера';
+    el.className = 'sv-timing-status sv-timing-ok';
+    return;
+  }
+  const elapsedMin = (Date.now() - timerStart) / 60000;
+  const diff = elapsedMin - curCumulMin;
+  if (diff < -3) {
+    el.textContent = 'Опережение ' + Math.round(Math.abs(diff)) + ' мин';
+    el.className = 'sv-timing-status sv-timing-ok';
+  } else if (diff <= 3) {
+    el.textContent = 'В графике';
+    el.className = 'sv-timing-status sv-timing-ok';
+  } else if (diff <= 10) {
+    el.textContent = 'Отставание +' + Math.round(diff) + ' мин';
+    el.className = 'sv-timing-status sv-timing-warn';
+  } else {
+    el.textContent = 'Отставание +' + Math.round(diff) + ' мин!';
+    el.className = 'sv-timing-status sv-timing-over';
+  }
+}
+
+// Timer
+let timerRunning = false, timerStart = null, timerInterval = null;
+document.getElementById('svTimerBtn').addEventListener('click', () => {
+  const btn = document.getElementById('svTimerBtn');
+  if (!timerRunning) {
+    timerStart = Date.now(); timerRunning = true; btn.textContent = 'Reset';
+    timerInterval = setInterval(() => {
+      const el = Math.floor((Date.now()-timerStart)/1000);
+      const h=String(Math.floor(el/3600)).padStart(2,'0');
+      const m=String(Math.floor((el%3600)/60)).padStart(2,'0');
+      const s=String(el%60).padStart(2,'0');
+      document.getElementById('svTimer').textContent=h+':'+m+':'+s;
+      updateTimingStatus();
+    }, 1000);
+    updateTimingStatus();
+  } else {
+    timerRunning=false; timerStart=null; btn.textContent='Start Timer';
+    clearInterval(timerInterval);
+    document.getElementById('svTimer').textContent='00:00:00';
+    updateTimingStatus();
+  }
+});
+<\/script></body></html>`);
+
+  sv.document.close();
+
+  // Send initial state
+  setTimeout(() => {
+    const t = getTimingForSlide(currentSlide);
+    channel.postMessage({
+      type: 'slideChanged',
+      slide: currentSlide,
+      total: totalSlides,
+      notes: allNotes[currentSlide],
+      title: allTitles[currentSlide],
+      nextTitle: currentSlide + 1 < totalSlides ? allTitles[currentSlide + 1] : null,
+      block: t.block, blockMin: t.blockMin, cumulMin: t.cumulMin,
+      posInBlock: t.posInBlock, totalInBlock: t.totalInBlock
+    });
+  }, 500);
+}
+
+// ============================================
+// Meme chaos — slide 2
+// ============================================
+(function() {
+  const CARDS = [
+    {type:'img', src:'memes/meme1.png',  w:295},
+    {type:'img', src:'memes/meme2.jpg',  w:215},
+    {type:'img', src:'memes/meme3.jpg',  w:200},
+    {type:'img', src:'memes/meme4.jpg',  w:255},
+    {type:'img', src:'memes/meme5.jpg',  w:275},
+    {type:'img', src:'memes/meme6.jpg',  w:225},
+    {type:'img', src:'memes/meme7.jpg',  w:195},
+    {type:'img', src:'memes/meme8.webp', w:265},
+    {type:'img', src:'memes/meme9.jpg',  w:240},
+    {type:'img', src:'memes/meme10.jpg', w:280},
+    {type:'img', src:'memes/meme11.jpg', w:235},
+    {type:'img', src:'memes/meme12.jpg', w:210},
+    {type:'img', src:'memes/meme13.jpg', w:260},
+    {type:'img', src:'memes/meme14.png', w:250},
+    {type:'text', emoji:'🤖', text:'«Все строят агентов»', w:170},
+    {type:'text', emoji:'💻', text:'«Вайб-кодинг!»',      w:160},
+    {type:'text', emoji:'🚀', text:'«AI заменит всех»',   w:165},
+  ];
+
+  const container = document.getElementById('meme-chaos');
+  if (!container) return;
+
+  let spawnTimer = null;
+  let active = false;
+  let lastIdx = -1;
+
+  function rand(min, max) { return min + Math.random() * (max - min); }
+
+  function spawnCard() {
+    if (!active) return;
+    let idx;
+    do { idx = Math.floor(Math.random() * CARDS.length); } while (idx === lastIdx);
+    lastIdx = idx;
+    const def = CARDS[idx];
+    const el = document.createElement('div');
+    const rot = rand(-14, 14);
+    const x = rand(120, container.offsetWidth - def.w - 120);
+    const y = rand(10, container.offsetHeight - 120);
+    const z = Math.floor(rand(1, 8));
+    const lifetime = rand(3500, 6500);
+    const driftX = rand(-80, 80);
+    const driftY = rand(-50, 50);
+
+    el.style.cssText = `
+      position:absolute;
+      width:${def.w}px;
+      left:${x}px;
+      top:${y}px;
+      background:#fff;
+      border-radius:16px;
+      padding:${def.type === 'img' ? '10px' : '16px 18px'};
+      box-shadow:0 6px 22px rgba(0,0,0,0.14);
+      opacity:0;
+      z-index:${z};
+      pointer-events:none;
+      text-align:center;
+      transform:rotate(${rot}deg);
+      transition:opacity 0.5s ease, transform ${(lifetime/1000).toFixed(1)}s ease;
+    `;
+
+    if (def.type === 'img') {
+      el.innerHTML = `<img src="${def.src}" style="width:100%;height:auto;display:block;border-radius:10px;">`;
+    } else {
+      el.innerHTML = `<p style="font-size:1.8rem;margin-bottom:6px">${def.emoji}</p><p style="font-size:0.88rem;font-weight:500;line-height:1.35;color:#1d1d1f">${def.text}</p>`;
+    }
+
+    container.appendChild(el);
+
+    // Fade in + start drift
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      el.style.opacity = '1';
+      el.style.transform = `rotate(${rot + rand(-5,5)}deg) translate(${driftX}px,${driftY}px)`;
+    }));
+
+    // Fade out
+    setTimeout(() => {
+      el.style.opacity = '0';
+      setTimeout(() => { if (el.parentNode) el.remove(); }, 600);
+    }, lifetime);
+  }
+
+  function startChaos() {
+    if (active) return;
+    active = true;
+    // Initial burst
+    for (let i = 0; i < 7; i++) setTimeout(spawnCard, i * 180);
+    spawnTimer = setInterval(spawnCard, 700);
+  }
+
+  function stopChaos() {
+    active = false;
+    clearInterval(spawnTimer);
+    spawnTimer = null;
+    // Clear remaining cards
+    while (container.firstChild) container.removeChild(container.firstChild);
+  }
+
+  // Patch goToSlide to start/stop chaos
+  const _goToSlide = goToSlide;
+  window.goToSlide = function(n) {
+    _goToSlide(n);
+    if (n === 1) startChaos(); // slide index 1 = slide 2
+    else stopChaos();
+  };
+
+  // Start if already on slide 2
+  if (currentSlide === 1) startChaos();
+})();
+</script>
+</body>
+</html>
